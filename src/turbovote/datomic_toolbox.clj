@@ -81,9 +81,9 @@
 
 (defn match-query
   "Given a db and a map of fields to values, performs a query
-   for exact matches against all non nil fields."
+   for exact matches against all non-nil fields."
   [db fields]
-  (let [non-nils (into (sorted-map) (filter second fields))
+  (let [non-nils (into (sorted-map) (filter (comp not nil? second) fields))
         ->sym (fn [key] (->> key name (str \?) symbol))
         clause (fn [[key val]]
                  (vector '?e

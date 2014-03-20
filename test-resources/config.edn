@@ -1,0 +1,2 @@
+{:datomic {:uri "datomic:mem://datomic-toolbox-test"
+           :partition :datomic-toolbox-test-partition}}
