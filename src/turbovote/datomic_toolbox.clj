@@ -13,7 +13,7 @@
 (defn transact [tx-data]
   (d/transact (connection) tx-data))
 
-(def schema-files
+(defn schema-files []
   (->> (io/resource "schemas")
        io/as-file
        file-seq
@@ -21,7 +21,7 @@
 
 (defn initialize []
   (d/create-database (config :datomic :uri))
-  (doseq [file schema-files]
+  (doseq [file (schema-files)]
     (->> file
          slurp
          (clojure.edn/read-string {:readers *data-readers*})
