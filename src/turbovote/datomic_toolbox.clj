@@ -36,6 +36,16 @@
   (let [nulled-keys (filter (comp nil? tx-map) nullable-keys)]
     (apply dissoc tx-map nulled-keys)))
 
+(defn- tx-data-fn-docstring [params]
+  (apply str
+         (interpose
+          "\n  "
+          ["Returns Datomic transaction data from a map of attributes, or"
+           "from a Datomic database id and a map of attributes"
+           ""
+           "The attribute map can contain the following keys:"
+           (apply str (interpose " " (map keyword params)))])))
+
 (defmacro deftx-data-fn
   "Creates a fn with the given name with two arities, the one given in
    params, and a version with a datomic entity id prepended. The
@@ -63,8 +73,10 @@
    the ?id for the person."
   [name params & body]
   (let [id-sym (gensym 'id)
-        body-with-id (walk/prewalk-replace {'?id id-sym} body)]
+        body-with-id (walk/prewalk-replace {'?id id-sym} body)
+        docstring (tx-data-fn-docstring params)]
     `(defn ~name
+       ~docstring
        ([data-map#] (~name (tempid) data-map#))
        ([~id-sym data-map#]
           (let [{:keys ~params} data-map#]
