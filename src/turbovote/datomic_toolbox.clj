@@ -30,7 +30,9 @@
 
 (defn partition [] (config :datomic :partition))
 
-(def tempid (comp d/tempid partition))
+(defn tempid
+  ([]  (d/tempid (partition)))
+  ([n] (d/tempid (partition) n)))
 
 (defn dissoc-optional-nil-values [tx-map nullable-keys]
   (let [nulled-keys (filter (comp nil? tx-map) nullable-keys)]
