@@ -13,22 +13,57 @@
 (defn transact [tx-data]
   (d/transact (connection) tx-data))
 
+(defn partition [] (config :datomic :partition))
+
 (defn schema-files []
   (->> (io/resource "schemas")
        io/as-file
        file-seq
        (filter #(.endsWith (.getName %) ".edn"))))
 
+(defn applied-migrations []
+  (->> (d/q '[:find ?migration
+              :in $
+              :where
+              [?e :datomic-toolbox/migration ?migration]] (db))
+       (map first)
+       set))
+
+(defn unapplied-migrations []
+  (let [applied? (fn [file]
+                   ((applied-migrations) (.getName file)))]
+    (remove applied? (schema-files))))
+
+(defn file->tx-data [file]
+  (->> file slurp (clojure.edn/read-string {:readers *data-readers*})))
+
+(defn run-migration [file]
+  (let [migration-tx (file->tx-data file)
+        full-tx (conj migration-tx {:db/id #db/id[:db.part/tx]
+                                    :datomic-toolbox/migration (.getName file)})]
+    (-> full-tx transact deref)))
+
+(defn run-migrations []
+  (doseq [file (unapplied-migrations)]
+    (run-migration file)))
+
+(defn install-migration-schema []
+  (-> [{:db/id #db/id[:db.part/db]
+        :db/ident (partition)
+        :db.install/_partition :db.part/db}
+       {:db/id #db/id[:db.part/db]
+        :db/ident :datomic-toolbox/migration
+        :db/valueType :db.type/string
+        :db/cardinality :db.cardinality/one
+        :db/doc "Migration File Name"
+        :db.install/_attribute :db.part/db}]
+      transact
+      deref))
+
 (defn initialize []
   (d/create-database (config :datomic :uri))
-  (doseq [file (schema-files)]
-    (->> file
-         slurp
-         (clojure.edn/read-string {:readers *data-readers*})
-         transact
-         deref)))
-
-(defn partition [] (config :datomic :partition))
+  (install-migration-schema)
+  (run-migrations))
 
 (defn tempid
   ([]  (d/tempid (partition)))
