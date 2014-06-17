@@ -71,11 +71,23 @@
                              :test/name))))))
 
 (deftest timestamps-test
-  (testing "timestamps"
+  (testing "timestamp from entity id"
     (let [test-id (tempid)
           {:keys [db-after tx-data tempids]} (d/with (db)
                                                      [{:db/id test-id
-                                                       :test/name "Foo"
+                                                       :test/name "Alice"}])
+          test-id (d/resolve-tempid db-after tempids test-id)
+          created-at (-> tx-data first (nth 2))
+
+          timestamps (timestamps db-after test-id)]
+      (is (= created-at (:created-at timestamps)))
+      (is (= created-at (:updated-at timestamps)))))
+  (testing "timestamp from unique attribute"
+    (let [test-id (tempid)
+          test-uuid (java.util.UUID/randomUUID)
+          {:keys [db-after tx-data tempids]} (d/with (db)
+                                                     [{:db/id test-id
+                                                       :test/id test-uuid
                                                        :test/important? false}])
           test-id (d/resolve-tempid db-after tempids test-id)
           created-at (-> tx-data first (nth 2))
@@ -89,7 +101,7 @@
                                              [{:db/id test-id
                                                :test/important? false}])
           updated-at (-> tx-data first (nth 2))
-          timestamps (timestamps db-after :test/name "Foo")]
+          timestamps (timestamps db-after :test/id test-uuid)]
       (is (= created-at (:created-at timestamps)))
       (is (= updated-at (:updated-at timestamps)))
       (is (= (list created-at modified-at updated-at)

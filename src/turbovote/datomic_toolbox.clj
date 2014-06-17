@@ -154,23 +154,35 @@
   [db fields]
   (map (comp (partial d/entity db) first) (match-query db fields)))
 
+(defn- tx-instants->timestamps
+  [tx-instants]
+  (let [timestamps (sort (map first tx-instants))]
+    {:created-at (first timestamps)
+     :updated-at (last timestamps)
+     :timestamps timestamps}))
+
 (defn timestamps
   "Returns a hash with keys :created-at, :updated-at, and :timestamps,
    the latter being all the timestamps of transactions affecting the
    entity in ascending order.
-   Pass in the database, a attribute identifier, and identifier
-   value. Attribute should ideally be unique, or the value should
-   be something like a UUID which will be. "
-  [db attribute value]
-  (let [timestamps (->> (d/q '[:find ?txInstant
-                               :in $ ?a ?v
-                               :where
-                               [?e ?a ?v]
-                               [?e _ _ ?t]
-                               [?t :db/txInstant ?txInstant]]
-                             (d/history db) attribute value)
-                        (map first)
-                        sort)]
-    {:created-at (first timestamps)
-     :updated-at (last timestamps)
-     :timestamps timestamps}))
+   In the two parameter form you pass in the database and the entity
+   id. In the three parameter form, you pass in the database, an
+   attribute identifier, and a value. This is useful if you want to
+   query off of a uniquely identified value."
+  ([db id]
+     (let [tx-instants (d/q '[:find ?txInstant
+                             :in $ ?e
+                             :where
+                             [?e _ _ ?tx]
+                             [?tx :db/txInstant ?txInstant]]
+                           (d/history db) id)]
+       (tx-instants->timestamps tx-instants)))
+  ([db attribute value]
+     (let [tx-instants (d/q '[:find ?txInstant
+                              :in $ ?a ?v
+                              :where
+                              [?e ?a ?v]
+                              [?e _ _ ?t]
+                              [?t :db/txInstant ?txInstant]]
+                            (d/history db) attribute value)]
+       (tx-instants->timestamps tx-instants))))
