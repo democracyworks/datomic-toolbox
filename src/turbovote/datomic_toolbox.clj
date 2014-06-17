@@ -167,8 +167,10 @@
    entity in ascending order.
    In the two parameter form you pass in the database and the entity
    id. In the three parameter form, you pass in the database, an
-   attribute identifier, and a value. This is useful if you want to
-   query off of a uniquely identified value."
+   uniquely identified attribute name, and a value. This is useful
+   if you want to query off of a uniquely identified value. Will
+   return an empty timestamps if the attribute is not uniquely
+   identified."
   ([db id]
      (let [tx-instants (d/q '[:find ?txInstant
                              :in $ ?e
@@ -181,6 +183,8 @@
      (let [tx-instants (d/q '[:find ?txInstant
                               :in $ ?a ?v
                               :where
+                              [?s :db/ident ?a]
+                              [?s :db/unique :db.unique/identity]
                               [?e ?a ?v]
                               [?e _ _ ?t]
                               [?t :db/txInstant ?txInstant]]

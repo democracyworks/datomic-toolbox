@@ -105,4 +105,27 @@
       (is (= created-at (:created-at timestamps)))
       (is (= updated-at (:updated-at timestamps)))
       (is (= (list created-at modified-at updated-at)
+             (:timestamps timestamps)))))
+  (testing "timestamp from non-unique attribute is nil"
+    (let [test-id (tempid)
+          {:keys [db-after tx-data tempids]} (d/with (db)
+                                                     [{:db/id test-id
+                                                       :test/name "Alice"
+                                                       :test/important? false}])
+          test-id (d/resolve-tempid db-after tempids test-id)
+          created-at (-> tx-data first (nth 2))
+          _ (Thread/sleep 1)
+          {:keys [db-after tx-data]} (d/with db-after
+                                             [{:db/id test-id
+                                               :test/important? true}])
+          modified-at (-> tx-data first (nth 2))
+          _ (Thread/sleep 1)
+          {:keys [db-after tx-data]} (d/with db-after
+                                             [{:db/id test-id
+                                               :test/important? false}])
+          updated-at (-> tx-data first (nth 2))
+          timestamps (timestamps db-after :test/name "Alice")]
+      (is (= nil (:created-at timestamps)))
+      (is (= nil (:updated-at timestamps)))
+      (is (= (list)
              (:timestamps timestamps))))))
