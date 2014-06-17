@@ -153,3 +153,24 @@
    entities"
   [db fields]
   (map (comp (partial d/entity db) first) (match-query db fields)))
+
+(defn timestamps
+  "Returns a hash with keys :created-at, :updated-at, and :timestamps,
+   the latter being all the timestamps of transactions affecting the
+   entity in ascending order.
+   Pass in the database, a attribute identifier, and identifier
+   value. Attribute should ideally be unique, or the value should
+   be something like a UUID which will be. "
+  [db attribute value]
+  (let [timestamps (->> (d/q '[:find ?txInstant
+                               :in $ ?a ?v
+                               :where
+                               [?e ?a ?v]
+                               [?e _ _ ?t]
+                               [?t :db/txInstant ?txInstant]]
+                             (d/history db) attribute value)
+                        (map first)
+                        sort)]
+    {:created-at (first timestamps)
+     :updated-at (last timestamps)
+     :timestamps timestamps}))
