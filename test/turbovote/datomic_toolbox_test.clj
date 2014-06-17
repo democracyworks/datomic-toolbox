@@ -71,42 +71,7 @@
                              :test/name))))))
 
 (deftest timestamps-test
-  (testing "timestamp from entity id"
-    (let [test-id (tempid)
-          {:keys [db-after tx-data tempids]} (d/with (db)
-                                                     [{:db/id test-id
-                                                       :test/name "Alice"}])
-          test-id (d/resolve-tempid db-after tempids test-id)
-          created-at (-> tx-data first (nth 2))
-
-          timestamps (timestamps db-after test-id)]
-      (is (= created-at (:created-at timestamps)))
-      (is (= created-at (:updated-at timestamps)))))
-  (testing "timestamp from unique attribute"
-    (let [test-id (tempid)
-          test-uuid (java.util.UUID/randomUUID)
-          {:keys [db-after tx-data tempids]} (d/with (db)
-                                                     [{:db/id test-id
-                                                       :test/id test-uuid
-                                                       :test/important? false}])
-          test-id (d/resolve-tempid db-after tempids test-id)
-          created-at (-> tx-data first (nth 2))
-          _ (Thread/sleep 1)
-          {:keys [db-after tx-data]} (d/with db-after
-                                             [{:db/id test-id
-                                               :test/important? true}])
-          modified-at (-> tx-data first (nth 2))
-          _ (Thread/sleep 1)
-          {:keys [db-after tx-data]} (d/with db-after
-                                             [{:db/id test-id
-                                               :test/important? false}])
-          updated-at (-> tx-data first (nth 2))
-          timestamps (timestamps db-after :test/id test-uuid)]
-      (is (= created-at (:created-at timestamps)))
-      (is (= updated-at (:updated-at timestamps)))
-      (is (= (list created-at modified-at updated-at)
-             (:timestamps timestamps)))))
-  (testing "timestamp from non-unique attribute is nil"
+  (testing "timestamps"
     (let [test-id (tempid)
           {:keys [db-after tx-data tempids]} (d/with (db)
                                                      [{:db/id test-id
@@ -124,8 +89,8 @@
                                              [{:db/id test-id
                                                :test/important? false}])
           updated-at (-> tx-data first (nth 2))
-          timestamps (timestamps db-after :test/name "Alice")]
-      (is (= nil (:created-at timestamps)))
-      (is (= nil (:updated-at timestamps)))
-      (is (= (list)
+          timestamps (timestamps db-after test-id)]
+      (is (= created-at (:created-at timestamps)))
+      (is (= updated-at (:updated-at timestamps)))
+      (is (= (list created-at modified-at updated-at)
              (:timestamps timestamps))))))
