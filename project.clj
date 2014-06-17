@@ -1,4 +1,4 @@
-(defproject turbovote.datomic-toolbox "0.2.0"
+(defproject turbovote.datomic-toolbox "0.2.1-SNAPSHOT"
   :description "Datomic utilities"
   :url "http://github.com/turbovote/datomic-toolbox"
   :dependencies [[org.clojure/clojure "1.5.1"]
