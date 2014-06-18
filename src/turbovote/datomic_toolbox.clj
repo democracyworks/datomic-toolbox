@@ -19,7 +19,8 @@
   (->> (io/resource "schemas")
        io/as-file
        file-seq
-       (filter #(.endsWith (.getName %) ".edn"))))
+       (filter #(.endsWith (.getName %) ".edn"))
+       (sort-by #(.getName %))))
 
 (defn applied-migrations []
   (->> (d/q '[:find ?migration
