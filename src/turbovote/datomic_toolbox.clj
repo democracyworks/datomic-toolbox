@@ -159,16 +159,18 @@
   "Returns a hash with keys :created-at, :updated-at, and :timestamps,
    the latter being all the timestamps of transactions affecting the
    entity in ascending order.
-   Pass in the database and the entity id."
-  [db id]
-  (let [tx-instants (->> (d/q '[:find ?txInstant
-                                :in $ ?e
-                                :where
-                                [?e _ _ ?tx]
-                                [?tx :db/txInstant ?txInstant]]
-                              (d/history db) id)
-                         (map first)
-                         sort)]
-    {:created-at (first tx-instants)
-     :updated-at (last tx-instants)
-     :timestamps tx-instants}))
+   Pass in the entity or a database and the entity id."
+  ([entity]
+     (timestamps (d/entity-db entity) (:db/id entity)))
+  ([db id]
+      (let [tx-instants (->> (d/q '[:find ?txInstant
+                                    :in $ ?e
+                                    :where
+                                    [?e _ _ ?tx]
+                                    [?tx :db/txInstant ?txInstant]]
+                                  (d/history db) id)
+                             (map first)
+                             sort)]
+        {:created-at (first tx-instants)
+         :updated-at (last tx-instants)
+         :timestamps tx-instants})))
