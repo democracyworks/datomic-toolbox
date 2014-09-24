@@ -130,10 +130,11 @@
          (d/entity db))))
 
 (defn match-query
-  "Given a db and a map of fields to values, performs a query
-   for exact matches against all non-nil fields."
+  "Given a db and a map of fields to values or a seq of two-element
+  vectors of fields and values, performs a query for exact matches
+  against all non-nil fields."
   [db fields]
-  (let [non-nils (into (sorted-map) (filter (comp not nil? second) fields))
+  (let [non-nils (filter (comp not nil? second) fields)
         ->sym (fn [key] (->> key name (str \?) symbol))
         clause (fn [[key val]]
                  (vector '?e
@@ -142,11 +143,11 @@
     (if (empty? non-nils)
       #{}
       (apply d/q (concat '[:find ?e :in $]
-                         (map ->sym (keys non-nils))
+                         (map (comp ->sym first) non-nils)
                          '[:where]
                          (map clause non-nils))
              db
-             (vals non-nils)))))
+             (map second non-nils)))))
 
 (defn match-entities
   "Given a db and a map of fields to values, performs a query for

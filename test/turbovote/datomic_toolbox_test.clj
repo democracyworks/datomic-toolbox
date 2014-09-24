@@ -64,6 +64,11 @@
       (is (= "test-2" (->> (match-query db {:test/important? false})
                               ffirst
                               (d/entity db)
+                              :test/name)))
+      (is (= "test-2" (->> (match-query db [[:test/important? false]
+                                            [:test/nil nil]])
+                              ffirst
+                              (d/entity db)
                               :test/name))))
     (testing "match-entities"
       (is (= "test-name" (-> (match-entities db {:test/important? true})
