@@ -15,12 +15,39 @@
 
 (defn partition [] (config :datomic :partition))
 
+(defprotocol INamedResource
+  (resource-name [resource]))
+(extend-type java.net.URL
+  INamedResource
+  (resource-name [url]
+    (-> url
+        str
+        (clojure.string/split #"/(?=.)")
+        last)))
+(extend-type java.io.File
+  INamedResource
+  (resource-name [file]
+    (.getName file)))
+
+(defn jarred-schemas [resource]
+  (->> resource
+       .getPath
+       (re-find #"^[^:]*:(.*)!")
+       second
+       java.util.jar.JarFile.
+       .entries
+       enumeration-seq
+       (filter #(.startsWith (str %) "schemas/"))
+       (map (comp io/resource str))))
+
 (defn schema-files []
-  (->> (io/resource "schemas")
-       io/as-file
-       file-seq
-       (filter #(.endsWith (.getName %) ".edn"))
-       (sort-by #(.getName %))))
+  (let [resource (io/resource "schemas")
+        files (if (= "jar" (.getProtocol resource))
+                (jarred-schemas resource)
+                (-> resource io/as-file file-seq))]
+    (->> files
+         (filter #(.endsWith (resource-name %) ".edn"))
+         (sort-by #(resource-name %)))))
 
 (defn applied-migrations []
   (->> (d/q '[:find ?migration
@@ -32,7 +59,7 @@
 
 (defn unapplied-migrations []
   (let [applied? (fn [file]
-                   ((applied-migrations) (.getName file)))]
+                   ((applied-migrations) (resource-name file)))]
     (remove applied? (schema-files))))
 
 (defn file->tx-data [file]
@@ -41,7 +68,7 @@
 (defn run-migration [file]
   (let [migration-tx (file->tx-data file)
         full-tx (conj migration-tx {:db/id #db/id[:db.part/tx]
-                                    :datomic-toolbox/migration (.getName file)})]
+                                    :datomic-toolbox/migration (resource-name file)})]
     (-> full-tx transact deref)))
 
 (defn run-migrations []
