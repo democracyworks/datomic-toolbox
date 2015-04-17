@@ -40,11 +40,18 @@
        (filter #(.startsWith (str %) "schemas/"))
        (map (comp io/resource str))))
 
+(defn vfs-schemas [resource]
+  (->> resource
+       .getContent
+       .getChildren
+       (map #(.getPhysicalFile %))))
+
 (defn schema-files []
   (let [resource (io/resource "schemas")
-        files (if (= "jar" (.getProtocol resource))
-                (jarred-schemas resource)
-                (-> resource io/as-file file-seq))]
+        files    (condp = (.getProtocol resource)
+                   "jar" (jarred-schemas resource)
+                   "vfs" (vfs-schemas resource)
+                   (-> resource io/as-file file-seq))]
     (->> files
          (filter #(.endsWith (resource-name %) ".edn"))
          (sort-by #(resource-name %)))))
