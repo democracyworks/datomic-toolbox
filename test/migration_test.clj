@@ -1,6 +1,6 @@
-(ns turbovote.migration-test
+(ns migration-test
   (:require [clojure.test :refer :all]
-            [turbovote.datomic-toolbox :refer :all]
+            [datomic-toolbox :refer :all]
             [turbovote.resource-config :refer [config]]
             [datomic.api :as d])
   (:refer-clojure :exclude [partition]))

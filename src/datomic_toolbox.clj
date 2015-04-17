@@ -1,4 +1,4 @@
-(ns turbovote.datomic-toolbox
+(ns datomic-toolbox
   (:require [clojure.java.io :as io]
             [clojure.walk :as walk]
             [datomic.api :as d]
