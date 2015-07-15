@@ -6,14 +6,14 @@
   (:refer-clojure :exclude [partition]))
 
 (defn connection []
-  (d/connect (config :datomic :uri)))
+  (d/connect (config [:datomic :uri])))
 
 (def db (comp d/db connection))
 
 (defn transact [tx-data]
   (d/transact (connection) tx-data))
 
-(defn partition [] (config :datomic :partition))
+(defn partition [] (config [:datomic :partition]))
 
 (defprotocol INamedResource
   (resource-name [resource]))
@@ -96,7 +96,7 @@
       deref))
 
 (defn initialize []
-  (d/create-database (config :datomic :uri))
+  (d/create-database (config [:datomic :uri]))
   (install-migration-schema)
   (run-migrations))
 

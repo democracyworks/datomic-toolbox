@@ -6,8 +6,8 @@
   (:refer-clojure :exclude [partition]))
 
 (defn migration-ready-db [f]
-  (d/delete-database (config :datomic :uri))
-  (d/create-database (config :datomic :uri))
+  (d/delete-database (config [:datomic :uri]))
+  (d/create-database (config [:datomic :uri]))
   (install-migration-schema)
   (f))
 

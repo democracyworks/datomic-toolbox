@@ -7,7 +7,7 @@
 
 (defn recreate-db
   [f]
-  (d/delete-database (config :datomic :uri))
+  (d/delete-database (config [:datomic :uri]))
   (initialize)
   (f))
 
