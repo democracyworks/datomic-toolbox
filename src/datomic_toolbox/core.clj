@@ -1,4 +1,4 @@
-(ns datomic-toolbox
+(ns datomic-toolbox.core
   (:require [clojure.java.io :as io]
             [clojure.walk :as walk]
             [datomic.api :as d]

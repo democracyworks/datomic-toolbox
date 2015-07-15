@@ -1,6 +1,6 @@
-(ns datomic-toolbox-test
+(ns datomic-toolbox.core-test
   (:require [clojure.test :refer :all]
-            [datomic-toolbox :refer :all]
+            [datomic-toolbox.core :refer :all]
             [turbovote.resource-config :refer [config]]
             [datomic.api :as d])
   (:refer-clojure :exclude [partition]))
