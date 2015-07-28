@@ -1,13 +1,13 @@
-(ns migration-test
+(ns datomic-toolbox.migration-test
   (:require [clojure.test :refer :all]
-            [datomic-toolbox :refer :all]
+            [datomic-toolbox.core :refer :all]
             [turbovote.resource-config :refer [config]]
             [datomic.api :as d])
   (:refer-clojure :exclude [partition]))
 
 (defn migration-ready-db [f]
-  (d/delete-database (config :datomic :uri))
-  (d/create-database (config :datomic :uri))
+  (d/delete-database (config [:datomic :uri]))
+  (d/create-database (config [:datomic :uri]))
   (install-migration-schema)
   (f))
 

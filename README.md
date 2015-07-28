@@ -17,4 +17,7 @@ There is currently no support for automatic migration running other than when `(
 
 ## License
 
-Copyright © 2014 Democracy Works, Inc.
+Copyright © 2014-2015 Democracy Works, Inc.
+
+Distributed under the Eclipse Public License either version 1.0 or (at
+your option) any later version.
