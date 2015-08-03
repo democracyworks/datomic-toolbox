@@ -67,47 +67,51 @@
          (filter #(.endsWith (resource-name %) ".edn"))
          (sort-by #(resource-name %)))))
 
-(defn applied-migrations []
-  (->> (d/q '[:find ?migration
-              :in $
-              :where
-              [?e :datomic-toolbox/migration ?migration]] (db))
-       (map first)
-       set))
+(defn applied-migrations
+  ([] (applied-migrations (db)))
+  ([db] (->> (d/q '[:find ?migration
+                    :in $
+                    :where [?e :datomic-toolbox/migration ?migration]] db)
+             (map first)
+             set)))
 
-(defn unapplied-migrations []
-  (let [applied? (fn [file]
-                   ((applied-migrations) (resource-name file)))]
-    (remove applied? (schema-files))))
+(defn unapplied-migrations
+  ([] (unapplied-migrations (db)))
+  ([db] (let [applied? (fn [file]
+                         ((applied-migrations db) (resource-name file)))]
+          (remove applied? (schema-files)))))
 
 (defn file->tx-data [file]
   (->> file slurp (clojure.edn/read-string {:readers *data-readers*})))
 
-(defn run-migration [file]
-  (let [migration-tx (file->tx-data file)
-        full-tx (conj migration-tx {:db/id #db/id[:db.part/tx]
-                                    :datomic-toolbox/migration (resource-name file)})]
-    (-> full-tx transact deref)))
+(defn run-migration
+  ([file] (run-migration (connection) file))
+  ([connection file]
+   (let [migration-tx (file->tx-data file)
+         full-tx (conj migration-tx {:db/id #db/id[:db.part/tx]
+                                     :datomic-toolbox/migration (resource-name file)})]
+     (->> full-tx (d/transact connection) deref))))
 
-(defn run-migrations []
-  (doseq [file (unapplied-migrations)]
-    (run-migration file)))
+(defn run-migrations
+  ([] (run-migrations (connection) (db)))
+  ([connection db] (doseq [file (unapplied-migrations db)]
+                     (run-migration file connection))))
 
-(defn install-migration-schema []
-  (-> [{:db/id #db/id[:db.part/db]
-        :db/ident (partition)
-        :db.install/_partition :db.part/db}
-       {:db/id #db/id[:db.part/db]
-        :db/ident :datomic-toolbox/migration
-        :db/valueType :db.type/string
-        :db/cardinality :db.cardinality/one
-        :db/doc "Migration File Name"
-        :db.install/_attribute :db.part/db}]
-      transact
-      deref))
+(defn install-migration-schema
+  ([] (install-migration-schema (connection)))
+  ([connection]
+   (->> [{:db/id #db/id[:db.part/db]
+          :db/ident (partition)
+          :db.install/_partition :db.part/db}
+         {:db/id #db/id[:db.part/db]
+          :db/ident :datomic-toolbox/migration
+          :db/valueType :db.type/string
+          :db/cardinality :db.cardinality/one
+          :db/doc "Migration File Name"
+          :db.install/_attribute :db.part/db}]
+        (d/transact connection)
+        deref)))
 
-(defn initialize []
-  (d/create-database (config [:datomic :uri]))
 (defn initialize [& [config]]
   (when config (configure! config))
   (d/create-database (uri))
