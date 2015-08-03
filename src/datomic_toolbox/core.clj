@@ -1,19 +1,30 @@
 (ns datomic-toolbox.core
   (:require [clojure.java.io :as io]
             [clojure.walk :as walk]
-            [datomic.api :as d]
-            [turbovote.resource-config :refer [config]])
+            [datomic.api :as d])
   (:refer-clojure :exclude [partition]))
 
+(def default-uri (atom nil))
+(def default-connection (atom nil))
+(def default-partition (atom nil))
+
+(defn configure! [{:keys [uri partition]}]
+  (reset! default-uri uri)
+  (reset! default-partition partition))
+
+(defn uri [] @default-uri)
+
 (defn connection []
-  (d/connect (config [:datomic :uri])))
+  (let [conn (d/connect (uri))]
+    (reset! default-connection conn)
+    conn))
+
+(defn partition [] @default-partition)
 
 (def db (comp d/db connection))
 
 (defn transact [tx-data]
   (d/transact (connection) tx-data))
-
-(defn partition [] (config [:datomic :partition]))
 
 (defprotocol INamedResource
   (resource-name [resource]))
@@ -97,6 +108,9 @@
 
 (defn initialize []
   (d/create-database (config [:datomic :uri]))
+(defn initialize [& [config]]
+  (when config (configure! config))
+  (d/create-database (uri))
   (install-migration-schema)
   (run-migrations))
 
