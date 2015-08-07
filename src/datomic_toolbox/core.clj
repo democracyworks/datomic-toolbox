@@ -95,7 +95,7 @@
 (defn run-migrations
   ([] (run-migrations (connection) (db)))
   ([connection db] (doseq [file (unapplied-migrations db)]
-                     (run-migration file connection))))
+                     (run-migration connection file))))
 
 (defn install-migration-schema
   ([] (install-migration-schema (connection)))
