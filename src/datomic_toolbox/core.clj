@@ -5,7 +5,6 @@
   (:refer-clojure :exclude [partition]))
 
 (def default-uri (atom nil))
-(def default-connection (atom nil))
 (def default-partition (atom nil))
 
 (defn configure! [{:keys [uri partition]}]
@@ -15,9 +14,7 @@
 (defn uri [] @default-uri)
 
 (defn connection []
-  (let [conn (d/connect (uri))]
-    (reset! default-connection conn)
-    conn))
+  (d/connect (uri)))
 
 (defn partition [] @default-partition)
 
