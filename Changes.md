@@ -1,5 +1,34 @@
 # Changelog
 
+## Changes between 1.1.0 and HEAD
+
+* Removed `turbovote/resource-config` dependency. Now you should pass in your
+  config to `datomic-toolbox.core/initialize` or `datomic-toolbox.core/configure!`
+  before using any of the zero-arity stateful fns (see list below).
+  **This is a breaking change.**
+* Made the following zero-arity functions optionally take connections and/or
+  database args in addition to working with the defaults setup by `initialize`
+  or `configure`:
+    * `applied-migrations`
+        * zero-arity uses `(db)`
+        * single-arity takes Datomic db value arg
+    * `unapplied-migrations`
+        * zero-arity uses `(db)`
+        * single-arity takes Datomic db value arg
+    * `run-migration`
+        * single-arity takes migration EDN file arg
+        * double-artiy takes Datomic connection and migration EDN file args
+    * `run-migrations`
+        * zero-arity uses `(connection)`
+        * (there is no single-arity version)
+        * double-arity takes Datomic connection and Datomic db value as args
+    * `install-migration-schema`
+        * zero-arity uses `(connection)`
+        * single-arity takes Datomic connection arg
+    * All other functions without higher arities for connections and db values
+      were intentionally left alone because `datomic.api` already provides the
+      equivalent function (e.g. `datomic-toolbox.core/db` versus `datomic.api/db`).
+
 ## Changes between 1.0.0 and 1.1.0
 
 * Added a core namespace. Code using this library will need to update
