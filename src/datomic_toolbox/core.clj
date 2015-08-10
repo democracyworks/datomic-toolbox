@@ -18,7 +18,7 @@
 
 (defn partition [] @default-partition)
 
-(def db (comp d/db connection))
+(defn db [] (d/db (connection)))
 
 (defn transact [tx-data]
   (d/transact (connection) tx-data))
