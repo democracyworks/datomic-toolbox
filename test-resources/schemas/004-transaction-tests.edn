@@ -1,0 +1,45 @@
+[
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :transaction-test/one-value
+  :db/valueType :db.type/uuid
+  :db/cardinality :db.cardinality/one
+  :db/doc "A one-cardinality value that happens to be a UUID."
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :transaction-test/many-value
+  :db/valueType :db.type/uuid
+  :db/cardinality :db.cardinality/many
+  :db/doc "A many-cardinality value that happens to be a UUID."
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :transaction-test/one-ref
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/one
+  :db/doc "A one-cardinality value that is a ref"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :transaction-test/many-ref
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/many
+  :db/doc "A many-cardinality value that is a ref"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id [:db.part/user]
+  :db/ident :transact
+  :db/fn #db/fn {:lang "clojure"
+                 :params [db eid rel old-value new-value]
+                 :code (let [entity (d/entity db eid)]
+                         (if (= old-value (get entity rel))
+                           (if (nil? new-value)
+                             [[:db/retract eid rel old-value]]
+                             [[:db/add eid rel new-value]])
+                           (throw (ex-info "Old value does not match."
+                                           {:old-value-requested old-value
+                                            :old-value-actual (get entity rel)
+                                            :new-value new-value}))))}}
+
+ ]
