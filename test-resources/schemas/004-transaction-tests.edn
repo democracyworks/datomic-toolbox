@@ -1,6 +1,4 @@
-[
-
- {:db/id #db/id[:db.part/db]
+[{:db/id #db/id[:db.part/db]
   :db/ident :transaction-test/one-value
   :db/valueType :db.type/uuid
   :db/cardinality :db.cardinality/one
@@ -30,16 +28,45 @@
 
  {:db/id #db/id [:db.part/user]
   :db/ident :transact
-  :db/fn #db/fn {:lang "clojure"
-                 :params [db eid rel old-value new-value]
-                 :code (let [entity (d/entity db eid)]
-                         (if (= old-value (get entity rel))
-                           (if (nil? new-value)
-                             [[:db/retract eid rel old-value]]
-                             [[:db/add eid rel new-value]])
-                           (throw (ex-info "Old value does not match."
-                                           {:old-value-requested old-value
-                                            :old-value-actual (get entity rel)
-                                            :new-value new-value}))))}}
+  :db/fn #db/fn
+  {:lang "clojure"
+   :params [db eid rel old-value new-value]
+   :code (let [entity (d/entity db eid)
+               relation (d/entity db rel)
+               cardinality (:db/cardinality relation)]
+           (case cardinality
+             :db.cardinality/one
+             (cond
+               (not= old-value (get entity rel))
+               (throw (ex-info "Old value does not match."
+                               {:old-value-requested old-value
+                                :old-value-actual (get entity rel)
+                                :new-value new-value}))
 
- ]
+               (= old-value new-value)
+               []
+
+               (nil? new-value)
+               [[:db/retract eid rel old-value]]
+
+               :else
+               [[:db/add eid rel new-value]])
+
+             :db.cardinality/many
+             (cond
+               (not= (not-empty (set old-value)) (get entity rel))
+               (throw (ex-info "Old value does not match."
+                               {:old-value-requested old-value
+                                :old-value-actual (get entity rel)
+                                :new-value new-value}))
+               :else
+               (concat
+                (for [val old-value
+                      :when (not (contains? new-value val))]
+                  [:db/retract eid rel val])
+                (for [val new-value
+                      :when (not (contains? old-value val))]
+                  [:db/add eid rel val])))
+
+             (throw (Exception.
+                     (str "Unsupported cardinality: " cardinality)))))}}]
