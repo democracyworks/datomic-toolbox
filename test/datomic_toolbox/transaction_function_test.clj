@@ -42,6 +42,9 @@
         eid (d/resolve-tempid db-after tempids tempid)]
     eid))
 
+(defn fake-entities! []
+  (set [(fake-entity!) (fake-entity!) (fake-entity!)]))
+
 ;; one value
 
 (deftest one-value-test
@@ -116,7 +119,7 @@
 
   (testing "setting existing many-value over the same value"
     (let [[eid rel uuids] (add-relation! :transaction-test/many-value rand-uuids)
-          tx-data [[:transact eid :transaction-test/many-value uuids uuids]]
+          tx-data [[:transact eid :transaction-test/many-value (reverse uuids) (vec uuids)]]
           {:keys [db-after]} @(d/transact (db/connection) tx-data)
           entity (d/entity db-after eid)]
       (is (= uuids (:transaction-test/many-value entity)))))
@@ -141,14 +144,7 @@
           tx-data [[:transact eid :transaction-test/many-value nil nil]]
           {:keys [db-after]} @(d/transact (db/connection) tx-data)
           entity (d/entity db-after eid)]
-      (is (nil? (:transaction-test/many-value entity)))))
-
-  (testing "on cardinality many, new-value must be a collection"
-    (let [[eid rel uuids] (add-relation! :transaction-test/many-value rand-uuids)
-          tx-data [[:transact eid :transaction-test/many-value uuids (rand-uuid)]]]
-      (is (thrown-with-msg? java.util.concurrent.ExecutionException
-                            #"IllegalArgumentException"
-                            @(d/transact (db/connection) tx-data))))))
+      (is (nil? (:transaction-test/many-value entity))))))
 
   ;; one ref (not component)
   ;; setting anew
@@ -207,6 +203,55 @@
   ;; setting anew
   ;; setting existing with correct existing value
   ;; setting existing with incorrect existing value
+
+(deftest many-ref-not-component-test
+  (testing "setting many refs anew"
+    (let [refs (fake-entities!)
+          tempid (db/tempid)
+          tx-data [[:transact tempid :transaction-test/many-ref nil refs]]
+          {:keys [db-after tempids]} @(d/transact (db/connection) tx-data)
+          eid (d/resolve-tempid db-after tempids tempid)
+          entity (d/entity db-after eid)]
+      (is (= refs (set (map :db/id (:transaction-test/many-ref entity)))))))
+
+  (testing "setting existing many-ref"
+    (let [[eid rel refs] (add-relation! :transaction-test/many-ref fake-entities!)
+          refs2 (fake-entities!)
+          tx-data [[:transact eid :transaction-test/many-ref (reverse refs) (vec refs2)]]
+          {:keys [db-after]} @(d/transact (db/connection) tx-data)
+          entity (d/entity db-after eid)]
+      (is (= refs2 (set (map :db/id (:transaction-test/many-ref entity)))))))
+
+  (testing "setting existing many-ref over the same refs"
+    (let [[eid rel refs] (add-relation! :transaction-test/many-ref fake-entities!)
+          tx-data [[:transact eid :transaction-test/many-ref (reverse refs) (vec refs)]]
+          {:keys [db-after]} @(d/transact (db/connection) tx-data)
+          entity (d/entity db-after eid)]
+      (is (= refs (set (map :db/id (:transaction-test/many-ref entity)))))))
+
+  (testing "setting existing many-ref with incorrect existing"
+    (let [[eid rel refs] (add-relation! :transaction-test/many-ref fake-entities!)
+          wrong (take 2 refs)
+          refs2 (fake-entities!)
+          tx-data [[:transact eid :transaction-test/many-ref wrong refs2]]]
+      (is (thrown-with-msg? java.util.concurrent.ExecutionException
+                            #"ConcurrentModificationException"
+                            @(d/transact (db/connection) tx-data)))
+      (let [entity (d/entity (db/db) eid)]
+        (is (= refs (set (map :db/id (:transaction-test/many-ref entity))))))))
+  (testing "setting existing many-ref to nil"
+    (let [[eid rel refs] (add-relation! :transaction-test/many-ref fake-entities!)
+          tx-data [[:transact eid :transaction-test/many-ref refs nil]]
+          {:keys [db-after]} @(d/transact (db/connection) tx-data)
+          entity (d/entity db-after eid)]
+      (is (nil? (:transaction-test/many-ref entity)))))
+
+  (testing "setting non-existant many-ref to nil"
+    (let [[eid rel uuid] (add-relation! :transaction-test/one-value rand-uuid)
+          tx-data [[:transact eid :transaction-test/many-ref nil nil]]
+          {:keys [db-after]} @(d/transact (db/connection) tx-data)
+          entity (d/entity db-after eid)]
+      (is (nil? (:transaction-test/many-ref entity))))))
 
   ;; one ref (component)
   ;; setting anew

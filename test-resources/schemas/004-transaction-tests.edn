@@ -48,60 +48,32 @@
   :db/fn #db/fn
   {:lang "clojure"
    :params [db eid rel old-value new-value]
-   :code (let [entity (d/entity db eid)
+   :code (let [entity   (d/entity db eid)
                relation (d/entity db rel)
-               cardinality (:db/cardinality relation)
-               type (:db/valueType relation)]
-           (cond
-             (and (= :db.cardinality/one cardinality)
-                  (= :db.type/ref type))
-             (cond
-               (not= old-value (get-in entity [rel :db/id]))
-               (throw (java.util.ConcurrentModificationException.
-                       (str "old-value does not match existing value: "
-                            "old-value: " (pr-str old-value) " "
-                            "existing-value: " (pr-str (get entity rel)))))
+               ->set (fn [maybe-set]
+                       (cond
+                         (instance? datomic.Entity maybe-set) #{maybe-set}
+                         (coll? maybe-set) (set maybe-set)
+                         (nil?  maybe-set) #{}
+                         :else             #{maybe-set}))
+               old-values (->set old-value)
+               new-values (->set new-value)
+               derefer (if (= :db.type/ref (:db/valueType relation))
+                         :db/id
+                         identity)
+               existing-values (set (map derefer (->set (get entity rel))))]
+           (when-not (= old-values existing-values)
+             (throw (java.util.ConcurrentModificationException.
+                     (str "old-values do not match existing values: "
+                          "old-values: " (pr-str old-values) " "
+                          "existing-values: " (pr-str existing-values)))))
 
-               (= old-value new-value)
-               []
+           (concat
+            (for [val old-values
+                  :when (not (contains? new-values val))]
+              [:db/retract eid rel val])
+            (for [val new-values
+                  :when (not (contains? old-values val))]
+              [:db/add eid rel val])))}}
 
-               (nil? new-value)
-               [[:db/retract eid rel old-value]]
-
-               :else
-               [[:db/add eid rel new-value]])
-
-             (= :db.cardinality/one cardinality)
-             (cond
-               (not= old-value (get entity rel))
-               (throw (java.util.ConcurrentModificationException.
-                       (str "old-value does not match existing value: "
-                            "old-value: " (pr-str old-value) " "
-                            "existing-value: " (pr-str (get entity rel)))))
-
-               (= old-value new-value)
-               []
-
-               (nil? new-value)
-               [[:db/retract eid rel old-value]]
-
-               :else
-               [[:db/add eid rel new-value]])
-
-             (= :db.cardinality/many cardinality)
-             (cond
-               (not= (not-empty (set old-value)) (get entity rel))
-               (throw (java.util.ConcurrentModificationException.
-                       "old-value does not match existing value"))
-               :else
-               (concat
-                (for [val old-value
-                      :when (not (contains? new-value val))]
-                  [:db/retract eid rel val])
-                (for [val new-value
-                      :when (not (contains? old-value val))]
-                  [:db/add eid rel val])))
-
-             :else
-             (throw (Exception.
-                     (str "Unsupported cardinality: " cardinality)))))}}]
+ ]
