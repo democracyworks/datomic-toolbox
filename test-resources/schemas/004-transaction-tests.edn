@@ -53,27 +53,43 @@
                ->set (fn [maybe-set]
                        (cond
                          (instance? datomic.Entity maybe-set) #{maybe-set}
+                         (map?  maybe-set) #{maybe-set}
                          (coll? maybe-set) (set maybe-set)
                          (nil?  maybe-set) #{}
                          :else             #{maybe-set}))
                old-values (->set old-value)
                new-values (->set new-value)
-               derefer (if (= :db.type/ref (:db/valueType relation))
+               derefer (cond
+                         (:db/isComponent relation)
+                         (fn [e]
+                           (assoc (into {} e)
+                                  :db/id (:db/id e)))
+
+                         (= :db.type/ref (:db/valueType relation))
                          :db/id
+
+                         :else
                          identity)
-               existing-values (set (map derefer (->set (get entity rel))))]
-           (when-not (= old-values existing-values)
+               existing-values (set (map derefer (->set (get entity rel))))
+               de-id (fn [e]
+                       (if (map? e)
+                         (dissoc e :db/id)
+                         e))]
+           (when-not (= old-values (set (map de-id existing-values)))
              (throw (java.util.ConcurrentModificationException.
                      (str "old-values do not match existing values: "
                           "old-values: " (pr-str old-values) " "
                           "existing-values: " (pr-str existing-values)))))
 
            (concat
-            (for [val old-values
-                  :when (not (contains? new-values val))]
-              [:db/retract eid rel val])
+            (for [val existing-values
+                  :when (not (contains? new-values (de-id val)))]
+              (if (:db/isComponent relation)
+                [:db.fn/retractEntity (:db/id val)]
+                [:db/retract eid rel val]))
             (for [val new-values
                   :when (not (contains? old-values val))]
-              [:db/add eid rel val])))}}
+              {:db/id eid
+               rel val})))}}
 
  ]
