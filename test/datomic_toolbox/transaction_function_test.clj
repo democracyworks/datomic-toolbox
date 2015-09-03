@@ -132,7 +132,14 @@
           tx-data [[:transact eid :transaction-test/many-value nil nil]]
           {:keys [db-after]} @(d/transact (db/connection) tx-data)
           entity (d/entity db-after eid)]
-      (is (nil? (:transaction-test/many-value entity))))))
+      (is (nil? (:transaction-test/many-value entity)))))
+
+  (testing "on cardinality many, new-value must be a collection"
+    (let [[eid rel uuids] (add-relation! :transaction-test/many-value rand-uuids)
+          tx-data [[:transact eid :transaction-test/many-value uuids (rand-uuid)]]]
+      (is (thrown-with-msg? java.util.concurrent.ExecutionException
+                            #"IllegalArgumentException"
+                            @(d/transact (db/connection) tx-data))))))
 
   ;; one ref
   ;; setting anew
