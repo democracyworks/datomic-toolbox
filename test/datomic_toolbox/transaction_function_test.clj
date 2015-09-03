@@ -33,6 +33,15 @@
 (defn rand-uuids []
   (set [(rand-uuid) (rand-uuid) (rand-uuid)]))
 
+(defn fake-entity! []
+  (let [tempid (db/tempid)
+        value (rand-uuid)
+        tx-data [{:db/id tempid
+                  :transaction-test/one-value value}]
+        {:keys [db-after tempids]} @(d/transact (db/connection) tx-data)
+        eid (d/resolve-tempid db-after tempids tempid)]
+    eid))
+
 ;; one value
 
 (deftest one-value-test
@@ -141,12 +150,70 @@
                             #"IllegalArgumentException"
                             @(d/transact (db/connection) tx-data))))))
 
-  ;; one ref
+  ;; one ref (not component)
   ;; setting anew
   ;; setting existing with correct existing value
   ;; setting existing with incorrect existing value
 
-  ;; many ref
+(deftest one-ref-not-component-test
+  (testing "setting one ref anew"
+    (let [ref (fake-entity!)
+          tempid (db/tempid)
+          tx-data [[:transact tempid :transaction-test/one-ref nil ref]]
+          {:keys [db-after tempids]} @(d/transact (db/connection) tx-data)
+          eid (d/resolve-tempid db-after tempids tempid)
+          entity (d/entity db-after eid)]
+      (is (= ref (get-in entity [:transaction-test/one-ref :db/id])))))
+
+  (testing "setting existing one-ref"
+    (let [[eid rel ref] (add-relation! :transaction-test/one-ref fake-entity!)
+          ref2 (fake-entity!)
+          tx-data [[:transact eid :transaction-test/one-ref ref ref2]]
+          {:keys [db-after]} @(d/transact (db/connection) tx-data)
+          entity (d/entity db-after eid)]
+      (is (= ref2 (get-in entity [:transaction-test/one-ref :db/id])))))
+
+  (testing "setting existing one-ref over the same ref"
+    (let [[eid rel ref] (add-relation! :transaction-test/one-ref fake-entity!)
+          tx-data [[:transact eid :transaction-test/one-ref ref ref]]
+          {:keys [db-after]} @(d/transact (db/connection) tx-data)
+          entity (d/entity db-after eid)]
+      (is (= ref (get-in entity [:transaction-test/one-ref :db/id])))))
+  (testing "setting existing one-ref with incorrect existing"
+    (let [[eid rel ref] (add-relation! :transaction-test/one-ref fake-entity!)
+          wrong (fake-entity!)
+          ref2 (fake-entity!)
+          tx-data [[:transact eid :transaction-test/one-ref wrong ref2]]]
+      (is (thrown-with-msg? java.util.concurrent.ExecutionException
+                            #"ConcurrentModificationException"
+                            @(d/transact (db/connection) tx-data)))
+      (let [entity (d/entity (db/db) eid)]
+        (is (= ref (get-in entity [:transaction-test/one-ref :db/id]))))))
+  (testing "setting existing one-ref to nil"
+    (let [[eid rel ref] (add-relation! :transaction-test/one-ref fake-entity!)
+          tx-data [[:transact eid :transaction-test/one-ref ref nil]]
+          {:keys [db-after]} @(d/transact (db/connection) tx-data)
+          entity (d/entity db-after eid)]
+      (is (nil? (:transaction-test/one-ref entity)))))
+
+  (testing "setting non-existant one-ref to nil"
+    (let [[eid rel uuid] (add-relation! :transaction-test/one-value rand-uuid)
+          tx-data [[:transact eid :transaction-test/one-ref nil nil]]
+          {:keys [db-after]} @(d/transact (db/connection) tx-data)
+          entity (d/entity db-after eid)]
+      (is (nil? (:transaction-test/one-ref entity))))))
+
+  ;; many ref (not component)
+  ;; setting anew
+  ;; setting existing with correct existing value
+  ;; setting existing with incorrect existing value
+
+  ;; one ref (component)
+  ;; setting anew
+  ;; setting existing with correct existing value
+  ;; setting existing with incorrect existing value
+
+  ;; many ref (component)
   ;; setting anew
   ;; setting existing with correct existing value
   ;; setting existing with incorrect existing value

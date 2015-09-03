@@ -26,6 +26,23 @@
   :db/doc "A many-cardinality value that is a ref"
   :db.install/_attribute :db.part/db}
 
+ {:db/id #db/id[:db.part/db]
+  :db/ident :transaction-test/one-ref-comp
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/one
+  :db/doc "A one-cardinality value that is a ref"
+  :db/isComponent true
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :transaction-test/many-ref-comp
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/many
+  :db/doc "A many-cardinality value that is a ref"
+  :db/isComponent true
+  :db.install/_attribute :db.part/db}
+
+
  {:db/id #db/id [:db.part/user]
   :db/ident :transact
   :db/fn #db/fn
@@ -33,13 +50,17 @@
    :params [db eid rel old-value new-value]
    :code (let [entity (d/entity db eid)
                relation (d/entity db rel)
-               cardinality (:db/cardinality relation)]
-           (case cardinality
-             :db.cardinality/one
+               cardinality (:db/cardinality relation)
+               type (:db/valueType relation)]
+           (cond
+             (and (= :db.cardinality/one cardinality)
+                  (= :db.type/ref type))
              (cond
-               (not= old-value (get entity rel))
+               (not= old-value (get-in entity [rel :db/id]))
                (throw (java.util.ConcurrentModificationException.
-                       "old-value does not match existing value"))
+                       (str "old-value does not match existing value: "
+                            "old-value: " (pr-str old-value) " "
+                            "existing-value: " (pr-str (get entity rel)))))
 
                (= old-value new-value)
                []
@@ -50,7 +71,24 @@
                :else
                [[:db/add eid rel new-value]])
 
-             :db.cardinality/many
+             (= :db.cardinality/one cardinality)
+             (cond
+               (not= old-value (get entity rel))
+               (throw (java.util.ConcurrentModificationException.
+                       (str "old-value does not match existing value: "
+                            "old-value: " (pr-str old-value) " "
+                            "existing-value: " (pr-str (get entity rel)))))
+
+               (= old-value new-value)
+               []
+
+               (nil? new-value)
+               [[:db/retract eid rel old-value]]
+
+               :else
+               [[:db/add eid rel new-value]])
+
+             (= :db.cardinality/many cardinality)
              (cond
                (not= (not-empty (set old-value)) (get entity rel))
                (throw (java.util.ConcurrentModificationException.
@@ -64,5 +102,6 @@
                       :when (not (contains? old-value val))]
                   [:db/add eid rel val])))
 
+             :else
              (throw (Exception.
                      (str "Unsupported cardinality: " cardinality)))))}}]
