@@ -38,10 +38,8 @@
              :db.cardinality/one
              (cond
                (not= old-value (get entity rel))
-               (throw (ex-info "Old value does not match."
-                               {:old-value-requested old-value
-                                :old-value-actual (get entity rel)
-                                :new-value new-value}))
+               (throw (java.util.ConcurrentModificationException.
+                       "old-value does not match existing value"))
 
                (= old-value new-value)
                []
@@ -55,10 +53,8 @@
              :db.cardinality/many
              (cond
                (not= (not-empty (set old-value)) (get entity rel))
-               (throw (ex-info "Old value does not match."
-                               {:old-value-requested old-value
-                                :old-value-actual (get entity rel)
-                                :new-value new-value}))
+               (throw (java.util.ConcurrentModificationException.
+                       "old-value does not match existing value"))
                :else
                (concat
                 (for [val old-value

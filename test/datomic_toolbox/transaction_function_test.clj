@@ -65,8 +65,9 @@
           wrong (java.util.UUID/randomUUID)
           uuid2 (java.util.UUID/randomUUID)
           tx-data [[:transact eid :transaction-test/one-value wrong uuid2]]]
-      (is (thrown? Throwable
-                   @(d/transact (db/connection) tx-data)))
+      (is (thrown-with-msg? java.util.concurrent.ExecutionException
+                            #"ConcurrentModificationException"
+                            @(d/transact (db/connection) tx-data)))
       (let [entity (d/entity (db/db) eid)]
         (is (= uuid (:transaction-test/one-value entity))))))
 
@@ -115,8 +116,9 @@
           wrong (rand-uuids)
           uuids2 (rand-uuids)
           tx-data [[:transact eid :transaction-test/many-value wrong uuids2]]]
-      (is (thrown? Throwable
-                   @(d/transact (db/connection) tx-data)))
+      (is (thrown-with-msg? java.util.concurrent.ExecutionException
+                            #"ConcurrentModificationException"
+                            @(d/transact (db/connection) tx-data)))
       (let [entity (d/entity (db/db) eid)]
         (is (= uuids (:transaction-test/many-value entity))))))
   (testing "setting existing many-value to nil"
@@ -130,19 +132,7 @@
           tx-data [[:transact eid :transaction-test/many-value nil nil]]
           {:keys [db-after]} @(d/transact (db/connection) tx-data)
           entity (d/entity db-after eid)]
-      (is (nil? (:transaction-test/many-value entity)))))
-  
-
-
-
-
-
-
-
-
-  ;; setting anew
-  ;; setting existing with correct existing value
-  ;; setting existing with incorrect existing value
+      (is (nil? (:transaction-test/many-value entity))))))
 
   ;; one ref
   ;; setting anew
@@ -153,5 +143,3 @@
   ;; setting anew
   ;; setting existing with correct existing value
   ;; setting existing with incorrect existing value
-  
-  )
