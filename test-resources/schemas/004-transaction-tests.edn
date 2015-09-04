@@ -59,21 +59,14 @@
                          :else             #{maybe-set}))
                old-values (->set old-value)
                new-values (->set new-value)
-               derefer (cond
-                         (:db/isComponent relation)
-                         (fn [e]
-                           (assoc (into {} e)
-                                  :db/id (:db/id e)))
-
-                         (= :db.type/ref (:db/valueType relation))
+               derefer (if (and (= :db.type/ref (:db/valueType relation))
+                                (not (:db/isComponent relation)))
                          :db/id
-
-                         :else
                          identity)
-               existing-values (set (map derefer (->set (get entity rel))))
+               existing-values (map derefer (->set (get entity rel)))
                de-id (fn [e]
-                       (if (map? e)
-                         (dissoc e :db/id)
+                       (if (instance? datomic.Entity e)
+                         (into {} e)
                          e))]
            (when-not (= old-values (set (map de-id existing-values)))
              (throw (java.util.ConcurrentModificationException.
