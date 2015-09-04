@@ -406,3 +406,12 @@
           {:keys [db-after]} @(d/transact (db/connection) tx-data)
           entity (d/entity db-after eid)]
       (is (nil? (:transaction-test/many-ref-comp entity))))))
+
+(deftest sanity-tests
+  (testing "setting one cardinality requires 0 or 1 value"
+    (let [uuids (rand-uuids)
+          tempid (db/tempid)
+          tx-data [[:transact tempid :transaction-test/one-value nil uuids]]]
+      (is (thrown-with-msg? java.util.concurrent.ExecutionException
+                            #"IllegalArgumentException"
+                            @(d/transact (db/connection) tx-data))))))
