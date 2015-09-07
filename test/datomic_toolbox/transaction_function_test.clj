@@ -457,3 +457,21 @@
                      :where [['?eid :transaction-test/one-value]]}
                     eid]]]
       (is @(d/transact (db/connection) tx-data)))))
+
+(deftest assert-equal-tests
+  (testing "assert-equal throws exception when it's not equal"
+    (let [[eid rel uuid] (add-relation! :transaction-test/one-value rand-uuid)
+          wrong (rand-uuid)
+          tx-data [[:assert-equal
+                    wrong
+                    eid rel]]]
+      (is (thrown-with-msg? java.util.concurrent.ExecutionException
+                            #"ConcurrentModificationException"
+                            @(d/transact (db/connection) tx-data)))))
+
+  (testing "assert-equal succeeds when it's equal"
+    (let [[eid rel uuid] (add-relation! :transaction-test/one-value rand-uuid)
+          tx-data [[:assert-equal
+                    uuid
+                    eid rel]]]
+      (is @(d/transact (db/connection) tx-data)))))
