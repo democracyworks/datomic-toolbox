@@ -170,10 +170,10 @@
           entity (d/entity db-after eid)]
       (is (nil? (:transaction-test/many-value entity))))))
 
-  ;; one ref (not component)
-  ;; setting anew
-  ;; setting existing with correct existing value
-  ;; setting existing with incorrect existing value
+;; one ref (not component)
+;; setting anew
+;; setting existing with correct existing value
+;; setting existing with incorrect existing value
 
 (deftest one-ref-not-component-test
   (testing "setting one ref anew"
@@ -223,10 +223,10 @@
           entity (d/entity db-after eid)]
       (is (nil? (:transaction-test/one-ref entity))))))
 
-  ;; many ref (not component)
-  ;; setting anew
-  ;; setting existing with correct existing value
-  ;; setting existing with incorrect existing value
+;; many ref (not component)
+;; setting anew
+;; setting existing with correct existing value
+;; setting existing with incorrect existing value
 
 (deftest many-ref-not-component-test
   (testing "setting many refs anew"
@@ -277,10 +277,10 @@
           entity (d/entity db-after eid)]
       (is (nil? (:transaction-test/many-ref entity))))))
 
-  ;; one ref (component)
-  ;; setting anew
-  ;; setting existing with correct existing value
-  ;; setting existing with incorrect existing value
+;; one ref (component)
+;; setting anew
+;; setting existing with correct existing value
+;; setting existing with incorrect existing value
 
 (deftest one-ref-component-test
   (testing "setting one ref component anew"
@@ -342,10 +342,10 @@
           entity (d/entity db-after eid)]
       (is (nil? (:transaction-test/one-ref-comp entity))))))
 
-  ;; many ref (component)
-  ;; setting anew
-  ;; setting existing with correct existing value
-  ;; setting existing with incorrect existing value
+;; many ref (component)
+;; setting anew
+;; setting existing with correct existing value
+;; setting existing with incorrect existing value
 
 (deftest many-ref-component-test
   (testing "setting many refs comp anew"
@@ -415,3 +415,45 @@
       (is (thrown-with-msg? java.util.concurrent.ExecutionException
                             #"IllegalArgumentException"
                             @(d/transact (db/connection) tx-data))))))
+
+(deftest assert-empty-tests
+  (testing "can assert-empty on new db"
+    (let [tempid (db/tempid)
+          tx-data [[:assert-empty
+                    {:find '[?eid]
+                     :in '[$]
+                     :where '[[?eid :transaction-test/one-value]]}
+                    tempid]]]
+      (is @(d/transact (db/connection) tx-data))))
+
+  (testing "assert-empty throws exception when it's not empty"
+    (let [[eid rel uuid] (add-relation! :transaction-test/one-value rand-uuid)
+          tx-data [[:assert-empty
+                    {:find '[?eid]
+                     :in '[$ ?eid]
+                     :where [['?eid :transaction-test/one-value]]}
+                    eid]]]
+      (is (thrown-with-msg? java.util.concurrent.ExecutionException
+                            #"ConcurrentModificationException"
+                            @(d/transact (db/connection) tx-data))))))
+
+(deftest assert-tests
+  (testing "assert-not-empty throws exception when it's empty"
+    (let [tempid (db/tempid)
+          tx-data [[:assert-not-empty
+                    {:find '[?eid]
+                     :in '[$]
+                     :where '[[?eid :transaction-test/one-value]]}
+                    tempid]]]
+      (is (thrown-with-msg? java.util.concurrent.ExecutionException
+                            #"ConcurrentModificationException"
+                            @(d/transact (db/connection) tx-data)))))
+
+  (testing "assert-not-empty succeeds when it's not empty"
+    (let [[eid rel uuid] (add-relation! :transaction-test/one-value rand-uuid)
+          tx-data [[:assert-not-empty
+                    {:find '[?eid]
+                     :in '[$ ?eid]
+                     :where [['?eid :transaction-test/one-value]]}
+                    eid]]]
+      (is @(d/transact (db/connection) tx-data)))))

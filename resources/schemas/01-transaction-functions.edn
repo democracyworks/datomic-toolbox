@@ -40,4 +40,38 @@
                   :when (not (contains? old-values val))]
               {:db/id eid
                rel val})))}}
+
+ {:db/id #db/id [:db.part/user]
+  :db/ident :assert-empty
+  :db/fn #db/fn
+  {:lang "clojure"
+   :params [db query & args]
+   :code (let [result (apply d/q query
+                             db
+                             args)]
+           (when (seq result)
+             (throw (java.util.ConcurrentModificationException.
+                     (str "assert-empty failed with non-empty results: "
+                          "query: " (pr-str query) "; "
+                          "args: " (pr-str args) "; "
+                          "with results: " (pr-str result)))))
+
+           [])}}
+
+ {:db/id #db/id [:db.part/user]
+  :db/ident :assert-not-empty
+  :db/fn #db/fn
+  {:lang "clojure"
+   :params [db query & args]
+   :code (let [result (apply d/q query
+                             db
+                             args)]
+           (when-not (seq result)
+             (throw (java.util.ConcurrentModificationException.
+                     (str "assert-empty failed with non-empty results: "
+                          "query: " (pr-str query) "; "
+                          "args: " (pr-str args) "; "
+                          "with results: " (pr-str result)))))
+
+           [])}}
  ]
