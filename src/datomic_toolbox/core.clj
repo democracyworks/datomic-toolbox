@@ -1,7 +1,8 @@
 (ns datomic-toolbox.core
   (:require [clojure.java.io :as io]
             [clojure.walk :as walk]
-            [datomic.api :as d])
+            [datomic.api :as d]
+            [clojure.edn :as edn])
   (:refer-clojure :exclude [partition]))
 
 (def default-uri (atom nil))
@@ -109,10 +110,20 @@
         (d/transact connection)
         deref)))
 
+(defn install-transaction-schema
+  ([] (install-transaction-schema (connection)))
+  ([connection]
+   (->> "schemas/01-transaction-functions.edn"
+        io/resource
+        file->tx-data
+        (d/transact connection)
+        deref)))
+
 (defn initialize [& [config]]
   (when config (configure! config))
   (d/create-database (uri))
   (install-migration-schema)
+  (install-transaction-schema)
   (run-migrations))
 
 (defn tempid

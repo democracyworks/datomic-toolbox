@@ -1,0 +1,43 @@
+[
+ {:db/id #db/id [:db.part/user]
+  :db/ident :transact
+  :db/fn #db/fn
+  {:lang "clojure"
+   :params [db eid rel old-value new-value]
+   :code (let [entity   (d/entity db eid)
+               relation (d/entity db rel)
+               ->set (fn [maybe-set]
+                       (cond
+                         (instance? datomic.Entity maybe-set) #{maybe-set}
+                         (map?  maybe-set) #{maybe-set}
+                         (coll? maybe-set) (set maybe-set)
+                         (nil?  maybe-set) #{}
+                         :else             #{maybe-set}))
+               old-values (->set old-value)
+               new-values (->set new-value)
+               derefer (if (and (= :db.type/ref (:db/valueType relation))
+                                (not (:db/isComponent relation)))
+                         :db/id
+                         identity)
+               existing-values (map derefer (->set (get entity rel)))
+               de-id (fn [e]
+                       (if (instance? datomic.Entity e)
+                         (into {} e)
+                         e))]
+           (when-not (= old-values (set (map de-id existing-values)))
+             (throw (java.util.ConcurrentModificationException.
+                     (str "old-values do not match existing values: "
+                          "old-values: " (pr-str old-values) " "
+                          "existing-values: " (pr-str existing-values)))))
+
+           (concat
+            (for [val existing-values
+                  :when (not (contains? new-values (de-id val)))]
+              (if (:db/isComponent relation)
+                [:db.fn/retractEntity (:db/id val)]
+                [:db/retract eid rel val]))
+            (for [val new-values
+                  :when (not (contains? old-values val))]
+              {:db/id eid
+               rel val})))}}
+ ]
