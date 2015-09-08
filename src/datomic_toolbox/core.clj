@@ -229,3 +229,24 @@
         {:created-at (first tx-instants)
          :updated-at (last tx-instants)
          :timestamps tx-instants})))
+
+(defn retry-tx
+  "Retries a transaction if an ExectuionException is found. Defaults
+  to only retrying no more than 100 times."
+  ([f] (retry-tx 100 f))
+  ([n f]
+   (if (pos? n)
+     (try
+       (f)
+       (catch java.util.concurrent.ExecutionException e
+         (let [cause (.getCause e)]
+           (if (instance? java.util.ConcurrentModificationException cause)
+             (retry-tx (dec n) f)
+             (throw e)))))
+     (f))))
+
+(defmacro with-retry-tx
+  ([body]
+   `(retry-tx (fn [] ~body)))
+  ([num body]
+   `(retry-tx ~num (fn [] ~body))))
