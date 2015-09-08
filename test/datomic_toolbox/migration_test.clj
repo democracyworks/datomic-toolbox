@@ -23,27 +23,27 @@
 
 (deftest schema-files-test
   (testing "finds schema files"
-    (is (= known-schema-files (map #(.getName %) (schema-files))))))
+    (is (= known-schema-files (map #(.getName %) (schema-files "schemas"))))))
 
 (deftest applied-migrations-test
-  (let [migration-count (count (schema-files))]
+  (let [migration-count (count (schema-files "schemas"))]
    (testing "no applied migratons"
      (is (empty? (applied-migrations))))
    (testing "with an applied migration"
-     (run-migration (first (schema-files)))
+     (run-migration (first (schema-files "schemas")))
      (is ((applied-migrations) "001-schema.edn")))
    (testing "with all migrations applied"
-     (run-migrations)
+     (run-migrations "schemas")
      (is (= migration-count (count (applied-migrations)))))))
 
 (deftest unapplied-migrations-test
-  (let [migration-count (count (schema-files))]
+  (let [migration-count (count (schema-files "schemas"))]
    (testing "no applied migrations"
-     (is (= migration-count (count (unapplied-migrations)))))
+     (is (= migration-count (count (unapplied-migrations "schemas")))))
    (testing "with an applied migration"
-     (run-migration (first (schema-files)))
-     (is (= (dec migration-count) (count (unapplied-migrations))))
-     (is (= "002-schema.edn" (-> (unapplied-migrations) first (.getName)))))
+     (run-migration (first (schema-files "schemas")))
+     (is (= (dec migration-count) (count (unapplied-migrations "schemas"))))
+     (is (= "002-schema.edn" (-> (unapplied-migrations "schemas") first (.getName)))))
    (testing "with all migrations applied"
-     (run-migrations)
-     (is (empty? (unapplied-migrations))))))
+     (run-migrations "schemas")
+     (is (empty? (unapplied-migrations "schemas"))))))

@@ -12,7 +12,6 @@
     (db/configure! {:uri test-db
                     :partition "test-db"})
     (db/initialize)
-    (db/run-migrations)
     (test)))
 
 (defn add-relation!

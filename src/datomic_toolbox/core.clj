@@ -55,8 +55,8 @@
        .getChildren
        (map #(.getPhysicalFile %))))
 
-(defn schema-files []
-  (let [resource (io/resource "schemas")
+(defn schema-files [directory]
+  (let [resource (io/resource directory)
         files    (condp = (.getProtocol resource)
                    "jar" (jarred-schemas resource)
                    "vfs" (vfs-schemas resource)
@@ -74,10 +74,11 @@
              set)))
 
 (defn unapplied-migrations
-  ([] (unapplied-migrations (db)))
-  ([db] (let [applied? (fn [file]
-                         ((applied-migrations db) (resource-name file)))]
-          (remove applied? (schema-files)))))
+  ([directory] (unapplied-migrations (db) directory))
+  ([db directory]
+   (let [applied? (fn [file]
+                    ((applied-migrations db) (resource-name file)))]
+     (remove applied? (schema-files directory)))))
 
 (defn file->tx-data [file]
   (->> file slurp (clojure.edn/read-string {:readers *data-readers*})))
@@ -91,9 +92,10 @@
      (->> full-tx (d/transact connection) deref))))
 
 (defn run-migrations
-  ([] (run-migrations (connection) (db)))
-  ([connection db] (doseq [file (unapplied-migrations db)]
-                     (run-migration connection file))))
+  ([directory] (run-migrations (connection) (db) directory))
+  ([connection db directory]
+   (doseq [file (unapplied-migrations db directory)]
+     (run-migration connection file))))
 
 (defn install-migration-schema
   ([] (install-migration-schema (connection)))
@@ -110,21 +112,12 @@
         (d/transact connection)
         deref)))
 
-(defn install-transaction-schema
-  ([] (install-transaction-schema (connection)))
-  ([connection]
-   (->> "schemas/01-transaction-functions.edn"
-        io/resource
-        file->tx-data
-        (d/transact connection)
-        deref)))
-
 (defn initialize [& [config]]
   (when config (configure! config))
   (d/create-database (uri))
   (install-migration-schema)
-  (install-transaction-schema)
-  (run-migrations))
+  (run-migrations "datomic-toolbox-schemas")
+  (run-migrations "schemas"))
 
 (defn tempid
   ([]  (d/tempid (partition)))
