@@ -19,6 +19,47 @@ When `(run-migrations)` is called, it compares the schema files and the :datomic
 
 There is currently no support for automatic migration running other than when `(initialize config-map)` is first called, at which time it will run all available migrations. Outside of that, you'll need to make a call to `(run-migrations)` at the appropriate point in your application.
 
+## Transactions
+
+When you need atomic transactions we have `with-retry-tx` that treats Datomic like an atom. For example:
+
+```clojure
+(db/with-retry-tx
+  @(db/transact
+    [ ;; assert same subscription
+     [:assert-not-empty
+      '{:find [?subid]
+        :in [$ ?subid ?userid]
+        :where [[?subid :user/id ?userid]]}
+      id user-id]
+     ;; assert it hasn't changed
+     [:assert-equal
+      (set current-mediums)
+      id :notification/medium]
+     ;; retract the entity
+     [:db.fn/retractEntity id]]])
+```
+
+If the value of the `current-mediums` changes mid transaction this code won't throw an exception, rather it will try and run the logic again up to 100 times. This treats Datomic more like an atom.
+
+### Transaction Functions
+
+`:transact`
+
+Generally useful for setting values of all types and cardinalities using compare-and-swap semantics.
+
+`:assert-empty`
+
+Generally useful for asserting that something still doesn't exist. For instance, assuring the uniqueness of a particular entity. See election-notification-works, where we want at most one subscription per user.
+
+`:assert-not-empty`
+
+Similarly useful for assuring that something still exists.
+
+`:assert-equal`
+
+Assert that a constant value is equal to the value of an entities property.
+
 ## License
 
 Copyright © 2014-2015 Democracy Works, Inc.
