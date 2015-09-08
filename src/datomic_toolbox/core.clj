@@ -38,7 +38,7 @@
   (resource-name [file]
     (.getName file)))
 
-(defn jarred-schemas [resource]
+(defn jarred-schemas [resource directory]
   (->> resource
        .getPath
        (re-find #"^[^:]*:(.*)!")
@@ -46,7 +46,7 @@
        java.util.jar.JarFile.
        .entries
        enumeration-seq
-       (filter #(.startsWith (str %) "schemas/"))
+       (filter #(.startsWith (str %) (str directory "/")))
        (map (comp io/resource str))))
 
 (defn vfs-schemas [resource]
@@ -58,7 +58,7 @@
 (defn schema-files [directory]
   (let [resource (io/resource directory)
         files    (condp = (.getProtocol resource)
-                   "jar" (jarred-schemas resource)
+                   "jar" (jarred-schemas resource directory)
                    "vfs" (vfs-schemas resource)
                    (-> resource io/as-file file-seq))]
     (->> files
