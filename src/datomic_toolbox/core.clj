@@ -92,6 +92,7 @@
      (->> full-tx (d/transact connection) deref))))
 
 (defn run-migrations
+  ([] (run-migrations "schemas"))
   ([directory] (run-migrations (connection) (db) directory))
   ([connection db directory]
    (doseq [file (unapplied-migrations db directory)]
@@ -117,7 +118,7 @@
   (d/create-database (uri))
   (install-migration-schema)
   (run-migrations "datomic-toolbox-schemas")
-  (run-migrations "schemas"))
+  (run-migrations))
 
 (defn tempid
   ([]  (d/tempid (partition)))
