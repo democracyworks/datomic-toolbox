@@ -43,7 +43,6 @@ given that it is currently set to `old-value`". Throw an exception
 otherwise.
 
 The semantics are dependent on the schema of the property being
-changed.
 
 * A `nil` (or empty collection) `old-value` indicates that the
 property should not be set for that entity.
