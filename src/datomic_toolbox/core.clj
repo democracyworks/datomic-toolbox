@@ -230,23 +230,39 @@
          :updated-at (last tx-instants)
          :timestamps tx-instants})))
 
-(defn retry-tx
-  "Retries a transaction if an ExectuionException is found. Defaults
-  to only retrying no more than 100 times."
-  ([f] (retry-tx 100 f))
-  ([n f]
-   (if (pos? n)
-     (try
-       (f)
-       (catch java.util.concurrent.ExecutionException e
-         (let [cause (.getCause e)]
-           (if (instance? java.util.ConcurrentModificationException cause)
-             (retry-tx (dec n) f)
-             (throw e)))))
-     (f))))
+(defn- swap-tx*
+  "Helper for swap-tx!"
+  [connection n f]
+  (let [tx-data (f (d/db connection))]
+    (if-not (pos? n)
+      @(d/transact connection tx-data)
+      (try
+        @(d/transact connection tx-data)
+        (catch java.util.concurrent.ExecutionException e
+          (let [cause (.getCause e)]
+            (if (instance? java.util.ConcurrentModificationException cause)
+              (swap-tx* connection (dec n) f)
+              (throw e))))))))
 
-(defmacro with-retry-tx
-  ([body]
-   `(retry-tx (fn [] ~body)))
-  ([num body]
-   `(retry-tx ~num (fn [] ~body))))
+(defn swap-tx!
+  "Takes a Datomic connection, a number of retries, and a function of
+  one argument (db) that returns transaction data. Will call `f` on
+  the current database of `connection` and `transact` the returned
+  transaction data. If `transact` fails with a
+  ConcurrentModificationException, the function will be called again
+  with the *new* current value of the database to generate new
+  transaction data, and that transacted, etc.
+
+  Note that `f` should be pure because it can be executed up to `n`
+  times.
+
+  `connection`: Datomic connection
+  `n`: number of retries
+  `f`: pure function from datomic db to transaction data
+
+  Defaults to retrying no more than 100 times.
+
+  This function is designed to work with the database functions
+  defined in `resources/datomic-toolbox-schemas/`"
+  ([f] (swap-tx! (connection) 100 f))
+  ([connection n f] (future (swap-tx* connection n f))))

@@ -40,7 +40,9 @@ When you need atomic transactions we have `with-retry-tx` that treats Datomic li
      [:db.fn/retractEntity id]]])
 ```
 
-If the value of the `current-mediums` changes mid transaction this code won't throw an exception, rather it will try and run the logic again up to 100 times. This treats Datomic more like an atom.
+If the value of the `current-mediums` changes mid-transaction this
+code won't throw an exception, rather it will try and run the logic
+again up to 100 times. This treats Datomic more like an atom.
 
 ### Transaction Functions
 
