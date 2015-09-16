@@ -24,9 +24,21 @@
                        (if (instance? datomic.Entity e)
                          (into {} e)
                          e))]
+           (throw (RuntimeException.
+                   (str "Info: "
+                        "old-value: " (pr-str old-value) "; "
+                        "old-values: " (pr-str old-values) "; "
+                        "new-value: " (pr-str new-value) "; "
+                        "new-values: " (pr-str new-values) "; "
+                        "entity? " (instance? datomic.Entity old-value) "; "
+                        "map? " (map? old-value) "; "
+                        "coll? " (coll? old-value) "; "
+                        "nil? " (nil? old-value) "; ")))
+
            (when-not (= old-values (set (map de-id existing-values)))
              (throw (java.util.ConcurrentModificationException.
                      (str "old-values do not match existing values: "
+                          "relation: " rel " "
                           "old-values: " (pr-str old-values) " "
                           "existing-values: " (pr-str existing-values)))))
 
@@ -52,23 +64,6 @@
            (when (seq result)
              (throw (java.util.ConcurrentModificationException.
                      (str "assert-empty failed with non-empty results: "
-                          "query: " (pr-str query) "; "
-                          "args: " (pr-str args) "; "
-                          "with results: " (pr-str result)))))
-
-           [])}}
-
- {:db/id #db/id [:db.part/user]
-  :db/ident :assert-not-empty
-  :db/fn #db/fn
-  {:lang "clojure"
-   :params [db query & args]
-   :code (let [result (apply d/q query
-                             db
-                             args)]
-           (when-not (seq result)
-             (throw (java.util.ConcurrentModificationException.
-                     (str "assert-not-empty failed with empty results: "
                           "query: " (pr-str query) "; "
                           "args: " (pr-str args) "; "
                           "with results: " (pr-str result)))))
