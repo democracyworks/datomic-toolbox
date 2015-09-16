@@ -8,9 +8,7 @@
                relation (d/entity db rel)
                ->set (fn [maybe-set]
                        (cond
-                         (instance? datomic.Entity maybe-set) #{maybe-set}
-                         (map?  maybe-set) #{maybe-set}
-                         (coll? maybe-set) (set maybe-set)
+                         (instance? java.util.Collection maybe-set) (set maybe-set)
                          (nil?  maybe-set) #{}
                          :else             #{maybe-set}))
                old-values (->set old-value)
@@ -27,8 +25,14 @@
            (when-not (= old-values (set (map de-id existing-values)))
              (throw (java.util.ConcurrentModificationException.
                      (str "old-values do not match existing values: "
-                          "old-values: " (pr-str old-values) " "
-                          "existing-values: " (pr-str existing-values)))))
+                          "Info: "
+                          "old-value: " (pr-str old-value) "; "
+                          "old-values: " (pr-str old-values) "; "
+                          "new-value: " (pr-str new-value) "; "
+                          "new-values: " (pr-str new-values) "; "
+                          "coll? " (instance? java.util.Collection old-value) "; "
+                          "nil? " (nil? old-value) "; "
+                          "type: " (type old-value)))))
 
            (concat
             (for [val existing-values
