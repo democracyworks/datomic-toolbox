@@ -9,10 +9,12 @@
        (map first)
        set))
 
-(defn unapplied [db]
-  (let [applied? (fn [file]
-                   ((applied db) (schema/resource-name file)))]
-    (remove applied? (schema/files))))
+(defn applied? [db file]
+  ((applied db) (schema/resource-name file)))
+
+(defn unapplied
+  [db directory]
+  (remove (partial applied? db) (schema/files directory)))
 
 (defn run
   [connection file]
@@ -22,9 +24,10 @@
     (->> full-tx (d/transact connection) deref)))
 
 (defn run-all
-  [connection db]
-  (doseq [file (unapplied db)]
-    (run connection file)))
+  ([connection db] (run-all connection db "schemas"))
+  ([connection db directory]
+   (doseq [file (unapplied db directory)]
+     (run connection file))))
 
 (defn install-schema
   [connection partition]

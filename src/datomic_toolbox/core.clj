@@ -30,8 +30,8 @@
 (defn applied-migrations []
   (migration/applied (db)))
 
-(defn unapplied-migrations []
-  (migration/unapplied (db)))
+(defn unapplied-migrations [directory]
+  (migration/unapplied (db) directory))
 
 (defn install-migration-schema []
   (migration/install-schema (connection) (partition)))
@@ -39,11 +39,13 @@
 (defn run-migration [file]
   (migration/run (connection) file))
 
-(defn run-migrations []
-  (migration/run-all (connection) (db)))
+(defn run-migrations
+  ([] (migration/run-all (connection) (db)))
+  ([directory] (migration/run-all (connection) (db) directory)))
 
 (defn initialize [& [config]]
   (when config (configure! config))
   (d/create-database (uri))
   (install-migration-schema)
+  (run-migrations "datomic-toolbox-schemas")
   (run-migrations))

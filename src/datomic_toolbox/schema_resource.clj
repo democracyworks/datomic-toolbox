@@ -14,8 +14,11 @@
   INamedResource
   (resource-name [file]
     (.getName file)))
+(extend-type java.lang.String
+  INamedResource
+  (resource-name [str] str))
 
-(defn jarred [resource]
+(defn jarred [resource directory]
   (->> resource
        .getPath
        (re-find #"^[^:]*:(.*)!")
@@ -23,7 +26,7 @@
        java.util.jar.JarFile.
        .entries
        enumeration-seq
-       (filter #(.startsWith (str %) "schemas/"))
+       (filter #(.startsWith (str %) (str directory "/")))
        (map (comp io/resource str))))
 
 (defn vfs [resource]
@@ -32,10 +35,10 @@
        .getChildren
        (map #(.getPhysicalFile %))))
 
-(defn files []
-  (let [resource (io/resource "schemas")
+(defn files [directory]
+  (let [resource (io/resource directory)
         files    (condp = (.getProtocol resource)
-                   "jar" (jarred resource)
+                   "jar" (jarred resource directory)
                    "vfs" (vfs resource)
                    (-> resource io/as-file file-seq))]
     (->> files

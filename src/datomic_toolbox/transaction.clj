@@ -52,3 +52,40 @@
        ([~id-sym data-map#]
           (let [{:keys ~params} data-map#]
             ~@body-with-id)))))
+
+(defn- swap-tx*
+  "Helper for swap-tx!"
+  [connection n f]
+  (let [tx-data (f (d/db connection))]
+    (if-not (pos? n)
+      @(d/transact connection tx-data)
+      (try
+        @(d/transact connection tx-data)
+        (catch java.util.concurrent.ExecutionException e
+          (let [cause (.getCause e)]
+            (if (instance? java.util.ConcurrentModificationException cause)
+              (swap-tx* connection (dec n) f)
+              (throw e))))))))
+
+(defn swap-tx!
+  "Takes a Datomic connection, a number of retries, and a function of
+  one argument (db) that returns transaction data. Will call `f` on
+  the current database of `connection` and `transact` the returned
+  transaction data. If `transact` fails with a
+  ConcurrentModificationException, the function will be called again
+  with the *new* current value of the database to generate new
+  transaction data, and that transacted, etc.
+
+  Note that `f` should be pure because it can be executed up to `n`
+  times.
+
+  `connection`: Datomic connection
+  `n`: number of retries
+  `f`: pure function from datomic db to transaction data
+
+  Defaults to retrying no more than 100 times.
+
+  This function is designed to work with the database functions
+  defined in `resources/datomic-toolbox-schemas/`"
+  ([f] (swap-tx! (core/connection) 100 f))
+  ([connection n f] (future (swap-tx* connection n f))))

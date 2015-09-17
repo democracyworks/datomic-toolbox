@@ -2,13 +2,12 @@
   (:require [datomic-toolbox.schema-resource :refer :all]
             [clojure.test :refer :all]))
 
+(def known-schema-files
+  ["001-schema.edn"
+   "002-schema.edn"
+   "003-unique-id.edn"
+   "004-transaction-tests.edn"])
+
 (deftest files-test
   (testing "finds schema files"
-    (is (= 3 (count (files))))
-    (let [filenames (->> (files)
-                         (map #(.getName %))
-                         set)]
-      (is (filenames "001-schema.edn"))
-      (is (filenames "002-schema.edn"))
-      (is (filenames "003-unique-id.edn"))
-      (is (= "001-schema.edn" (-> (files) first (.getName)))))))
+    (is (= known-schema-files (map #(.getName %) (files "schemas"))))))
