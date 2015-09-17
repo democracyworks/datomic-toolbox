@@ -1,7 +1,8 @@
 (ns datomic-toolbox.core
   (:require [clojure.java.io :as io]
             [clojure.walk :as walk]
-            [datomic.api :as d])
+            [datomic.api :as d]
+            [clojure.edn :as edn])
   (:refer-clojure :exclude [partition]))
 
 (def default-uri (atom nil))
@@ -37,7 +38,7 @@
   (resource-name [file]
     (.getName file)))
 
-(defn jarred-schemas [resource]
+(defn jarred-schemas [resource directory]
   (->> resource
        .getPath
        (re-find #"^[^:]*:(.*)!")
@@ -45,7 +46,7 @@
        java.util.jar.JarFile.
        .entries
        enumeration-seq
-       (filter #(.startsWith (str %) "schemas/"))
+       (filter #(.startsWith (str %) (str directory "/")))
        (map (comp io/resource str))))
 
 (defn vfs-schemas [resource]
@@ -54,10 +55,10 @@
        .getChildren
        (map #(.getPhysicalFile %))))
 
-(defn schema-files []
-  (let [resource (io/resource "schemas")
+(defn schema-files [directory]
+  (let [resource (io/resource directory)
         files    (condp = (.getProtocol resource)
-                   "jar" (jarred-schemas resource)
+                   "jar" (jarred-schemas resource directory)
                    "vfs" (vfs-schemas resource)
                    (-> resource io/as-file file-seq))]
     (->> files
@@ -73,10 +74,11 @@
              set)))
 
 (defn unapplied-migrations
-  ([] (unapplied-migrations (db)))
-  ([db] (let [applied? (fn [file]
-                         ((applied-migrations db) (resource-name file)))]
-          (remove applied? (schema-files)))))
+  ([directory] (unapplied-migrations (db) directory))
+  ([db directory]
+   (let [applied? (fn [file]
+                    ((applied-migrations db) (resource-name file)))]
+     (remove applied? (schema-files directory)))))
 
 (defn file->tx-data [file]
   (->> file slurp (clojure.edn/read-string {:readers *data-readers*})))
@@ -90,9 +92,11 @@
      (->> full-tx (d/transact connection) deref))))
 
 (defn run-migrations
-  ([] (run-migrations (connection) (db)))
-  ([connection db] (doseq [file (unapplied-migrations db)]
-                     (run-migration connection file))))
+  ([] (run-migrations "schemas"))
+  ([directory] (run-migrations (connection) (db) directory))
+  ([connection db directory]
+   (doseq [file (unapplied-migrations db directory)]
+     (run-migration connection file))))
 
 (defn install-migration-schema
   ([] (install-migration-schema (connection)))
@@ -113,6 +117,7 @@
   (when config (configure! config))
   (d/create-database (uri))
   (install-migration-schema)
+  (run-migrations "datomic-toolbox-schemas")
   (run-migrations))
 
 (defn tempid
@@ -224,3 +229,40 @@
         {:created-at (first tx-instants)
          :updated-at (last tx-instants)
          :timestamps tx-instants})))
+
+(defn- swap-tx*
+  "Helper for swap-tx!"
+  [connection n f]
+  (let [tx-data (f (d/db connection))]
+    (if-not (pos? n)
+      @(d/transact connection tx-data)
+      (try
+        @(d/transact connection tx-data)
+        (catch java.util.concurrent.ExecutionException e
+          (let [cause (.getCause e)]
+            (if (instance? java.util.ConcurrentModificationException cause)
+              (swap-tx* connection (dec n) f)
+              (throw e))))))))
+
+(defn swap-tx!
+  "Takes a Datomic connection, a number of retries, and a function of
+  one argument (db) that returns transaction data. Will call `f` on
+  the current database of `connection` and `transact` the returned
+  transaction data. If `transact` fails with a
+  ConcurrentModificationException, the function will be called again
+  with the *new* current value of the database to generate new
+  transaction data, and that transacted, etc.
+
+  Note that `f` should be pure because it can be executed up to `n`
+  times.
+
+  `connection`: Datomic connection
+  `n`: number of retries
+  `f`: pure function from datomic db to transaction data
+
+  Defaults to retrying no more than 100 times.
+
+  This function is designed to work with the database functions
+  defined in `resources/datomic-toolbox-schemas/`"
+  ([f] (swap-tx! (connection) 100 f))
+  ([connection n f] (future (swap-tx* connection n f))))
