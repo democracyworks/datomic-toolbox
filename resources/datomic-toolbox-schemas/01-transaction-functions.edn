@@ -63,30 +63,23 @@
            [])}}
 
  {:db/id #db/id [:db.part/user]
-  :db/ident :assert-not-empty
-  :db/fn #db/fn
-  {:lang "clojure"
-   :params [db query & args]
-   :code (let [result (apply d/q query
-                             db
-                             args)]
-           (when-not (seq result)
-             (throw (java.util.ConcurrentModificationException.
-                     (str "assert-not-empty failed with empty results: "
-                          "query: " (pr-str query) "; "
-                          "args: " (pr-str args) "; "
-                          "with results: " (pr-str result)))))
-
-           [])}}
-
- {:db/id #db/id [:db.part/user]
   :db/ident :assert-equal
   :db/fn #db/fn
   {:lang "clojure"
    :params [db value eid rel]
-   :code (let [entity (d/entity db eid)
+   :code (let [->set (fn [maybe-set]
+                       (cond
+                         (instance? java.util.Collection maybe-set)
+                         (set maybe-set)
+
+                         (nil?  maybe-set)
+                         #{}
+
+                         :else
+                         #{maybe-set}))
+               entity (d/entity db eid)
                existing-value (get entity rel)]
-           (when-not (= existing-value value)
+           (when-not (= (->set existing-value) (->set value))
              (throw (java.util.ConcurrentModificationException.
                      (str "assert-equal failed with results: "
                           "value: " (pr-str value) "; "

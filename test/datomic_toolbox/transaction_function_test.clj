@@ -436,27 +436,6 @@
                             #"ConcurrentModificationException"
                             @(d/transact (db/connection) tx-data))))))
 
-(deftest assert-tests
-  (testing "assert-not-empty throws exception when it's empty"
-    (let [tempid (db/tempid)
-          tx-data [[:assert-not-empty
-                    {:find '[?eid]
-                     :in '[$]
-                     :where '[[?eid :transaction-test/one-value]]}
-                    tempid]]]
-      (is (thrown-with-msg? java.util.concurrent.ExecutionException
-                            #"ConcurrentModificationException"
-                            @(d/transact (db/connection) tx-data)))))
-
-  (testing "assert-not-empty succeeds when it's not empty"
-    (let [[eid rel uuid] (add-relation! :transaction-test/one-value rand-uuid)
-          tx-data [[:assert-not-empty
-                    {:find '[?eid]
-                     :in '[$ ?eid]
-                     :where [['?eid :transaction-test/one-value]]}
-                    eid]]]
-      (is @(d/transact (db/connection) tx-data)))))
-
 (deftest assert-equal-tests
   (testing "assert-equal throws exception when it's not equal"
     (let [[eid rel uuid] (add-relation! :transaction-test/one-value rand-uuid)
