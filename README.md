@@ -32,7 +32,7 @@ database. If the assertion fails, the transaction fails with a
 Generally useful for setting values of all types and cardinalities
 using compare-and-swap semantics.
 
-Example:
+Signature:
 
 ```
 [:transact eid :some/prop old-value new-value]
@@ -63,46 +63,41 @@ Generally useful for asserting that something *still* doesn't
 exist. For instance, assuring the uniqueness of a particular
 entity.
 
+Signature:
+
+```
+[:assert-empty query & args]
+```
+
 Example:
 
 ```
 [:assert-empty
- {:find [?eid]
-  :in [$ ?userid]
-  :where [[?eid :user/id ?userid]]}
+ '{:find [?eid]
+   :in [$ ?userid]
+   :where [[?eid :user/id ?userid]]}
  123]
 ```
 
 This asserts that there is no entity with `:user/id` 123. This is
 useful for enforcing a uniqueness constraint.
 
-**`:assert-not-empty`:**
-
-Similarly useful for assuring that something *still* exists.
-
-Example:
-
-```
-[:assert-not-empty
- {:find [?eid]
-  :in [$ ?userid]
-  :where [[?eid :user/id ?userid]]}
- 111 222]
-```
-
-This asserts that the entitity with id 111 still points to
-userid 222. This is useful for enforcing uniqueness.
-
 **`:assert-equal`:**
 
 Assert that a constant value is equal to the value of an entity's
 property.
 
+Signature:
+
+```
+[:assert-equal expected-value entity-id relation]
+```
+
 Example:
 
 ```
-[:assert-equal
- 123 :election/authority-level #{:state :municipal}]
+[:assert-equal #{:state :municipal}
+ 123 :election/authority-level]
 ```
 
 Assert that entity 123 has the given authority levels. Note that the
