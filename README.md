@@ -111,7 +111,7 @@ property.
 operation). It changes the database regardless of the current
 value. There is no equivalent in datomic to do a `swap!`, where the
 transaction data is based on the current value. That's what
-`datomic-toolbox.core/swap-tx!` is for.
+`datomic-toolbox.transaction/swap-tx!` is for.
 
 `swap-tx!` takes a function of a single argument. That argument is the
 current database. The function should return the transaction data
