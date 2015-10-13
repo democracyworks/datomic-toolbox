@@ -9,4 +9,5 @@
                                    :username [:gpg :env]
                                    :password [:gpg :env]}}
   :profiles {:dev {:resource-paths ["dev-resources"]}
-             :test {:resource-paths ["test-resources"]}})
+             :test {:resource-paths ["test-resources"]}}
+  :deploy-repositories {"releases" :clojars})
