@@ -2,6 +2,8 @@
 
 Datomic utility library
 
+[![Build Status](https://travis-ci.org/democracyworks/datomic-toolbox.svg)](https://travis-ci.org/democracyworks/datomic-toolbox)
+
 Takes a config map like:
 `{:uri XXX :partition :XXX}`
 
