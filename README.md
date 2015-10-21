@@ -11,6 +11,11 @@ Pass it in like this `(datomic-toolbox.core/initialize config-map)` or
 like this `(datomic-toolbox.core/configure! config-map)` before using
 any of the zero-arity stateful fns.
 
+## Upgrading
+
+If you're upgrading to 2.x.x from 1.x.x, please see the upgrading
+guide (UPGRADING.md) in this repo.
+
 ## Migrations
 
 Datomic Toolbox has support for migrations. The database needs to be initialized by datomic-toolbox to get this support (older databases will need to be migrated). Running `(initialize config-map)` installs the partition and a transaction attribute called :datomic-toolbox/migration, which is used to keep track of which migration files have been run.
