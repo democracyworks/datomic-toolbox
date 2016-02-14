@@ -14,6 +14,12 @@
 
 (use-fixtures :each recreate-db)
 
+(deftest configure!-test
+  (testing "resets connection atom to nil"
+    ;; initialize is implicitly called via the recreate-db fixture
+    (configure! {})
+    (is (nil? @default-connection))))
+
 (deftest initialize-test
   ;; initialize is implicitly called via the recreate-db fixture
   (is (seq (d/q '[:find ?e :where [?e :db/ident :test/name]] (db)))))
