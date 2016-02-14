@@ -1,6 +1,14 @@
 # Changelog
 
-## Changes between 1.1.0 and HEAD
+## Changes between 2.0.0 and 2.0.1
+
+* Moved default Datomic connection into an atom because we discovered that
+  `datomic.api/connect` sometimes has long (5+ second) pauses even though its
+  docs say that it caches connections and is safe to call repeatedly. This was
+  true in Datomic 0.9.5327, anyway. We're working with Cognitect to figure out
+  if this is a bug, but this seems like an OK way to do things either way.
+
+## Changes between 1.1.0 and 2.0.0
 
 * Removed `turbovote/resource-config` dependency. Now you should pass in your
   config to `datomic-toolbox.core/initialize` or `datomic-toolbox.core/configure!`
