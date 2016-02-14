@@ -6,15 +6,24 @@
 
 (def default-uri (atom nil))
 (def default-partition (atom nil))
+(def default-connection
+  "In theory this shouldn't be needed because datomic.api/connect is supposed to
+  cache connections. But we saw 5+ second pauses sometimes when calling this, so
+  I'm trying out storing it an atom instead of re-calling datomic.api/connect.
+  - WSM 2016-2-13"
+  (atom nil))
 
 (defn configure! [{:keys [uri partition]}]
   (reset! default-uri uri)
-  (reset! default-partition partition))
+  (reset! default-partition partition)
+  (reset! default-connection nil))
 
 (defn uri [] @default-uri)
 
 (defn connection []
-  (d/connect (uri)))
+  (when (nil? @default-connection)
+    (reset! default-connection (d/connect (uri))))
+  @default-connection)
 
 (defn partition [] @default-partition)
 
