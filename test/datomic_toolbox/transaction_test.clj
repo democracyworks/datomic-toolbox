@@ -25,7 +25,7 @@
   (testing "without an explicit id"
     (let [tx-data (test-tx-data-fn {:name "the-macro" :important true})
           entity-map (first tx-data)]
-      (is (= "test-the-macro") (:test/name entity-map))
+      (is (= "test-the-macro" (:test/name entity-map)))
       (is (:test/important? entity-map))
       (is (= (core/partition) (-> entity-map :db/id :part)))))
   (testing "with an explicit id"
