@@ -1,5 +1,10 @@
 # Changelog
 
+## Changes between 2.0.1 and 2.0.2
+
+* Updated dependencies, which shouldn't affect users much since you should be
+  using your own Clojure, Datomic peer lib, etc.
+
 ## Changes between 2.0.0 and 2.0.1
 
 * Moved default Datomic connection into an atom because we discovered that
