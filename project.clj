@@ -1,4 +1,4 @@
-(defproject democracyworks/datomic-toolbox "2.0.2"
+(defproject democracyworks/datomic-toolbox "2.0.3-SNAPSHOT"
   :description "Datomic utilities"
   :url "http://github.com/democracyworks/datomic-toolbox"
   :license {:name "Eclipse Public License"
