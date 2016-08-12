@@ -2,7 +2,10 @@
   (:require [clojure.test :refer :all]
             [datomic-toolbox.query :refer :all]
             [datomic.api :as d]
-            [datomic-toolbox.core :as core]))
+            [datomic-toolbox.core :as core]
+            [datomic-toolbox.test-helpers :refer [migrated-test-db]]))
+
+(use-fixtures :each migrated-test-db)
 
 (deftest query-helper-tests
   (let [db (:db-after (d/with (core/db) [{:db/id (core/tempid)
