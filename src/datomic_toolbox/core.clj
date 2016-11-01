@@ -12,11 +12,13 @@
   I'm trying out storing it an atom instead of re-calling datomic.api/connect.
   - WSM 2016-2-13"
   (atom nil))
+(def default-migration-tx-instant (atom nil))
 
-(defn configure! [{:keys [uri partition]}]
+(defn configure! [{:keys [uri partition migration-tx-instant]}]
   (reset! default-uri uri)
   (reset! default-partition partition)
-  (reset! default-connection nil))
+  (reset! default-connection nil)
+  (reset! default-migration-tx-instant migration-tx-instant))
 
 (defn uri [] @default-uri)
 
@@ -33,6 +35,8 @@
   ([]  (d/tempid (partition)))
   ([n] (d/tempid (partition) n)))
 
+(defn migration-tx-instant [] @default-migration-tx-instant)
+
 (defn transact [tx-data]
   (d/transact (connection) tx-data))
 
@@ -43,14 +47,14 @@
   (migration/unapplied (db) directory))
 
 (defn install-migration-schema []
-  (migration/install-schema (connection) (partition)))
+  (migration/install-schema (connection) (partition) (migration-tx-instant)))
 
 (defn run-migration [file]
-  (migration/run (connection) file))
+  (migration/run (connection) file (migration-tx-instant)))
 
 (defn run-migrations
-  ([] (migration/run-all (connection) (db)))
-  ([directory] (migration/run-all (connection) (db) directory)))
+  ([] (migration/run-all (connection) (db) nil (migration-tx-instant)))
+  ([directory] (migration/run-all (connection) (db) directory (migration-tx-instant))))
 
 (defn initialize [& [config]]
   (when config (configure! config))
