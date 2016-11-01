@@ -1,5 +1,12 @@
 # Changelog
 
+## UNRELEASED
+
+* Added support for a `:migration-tx-instant` optional config param that can be set to a java.util.Date value.
+  This will be used to set the `:db/txInstant` of the schema migrations when present. Higher arities of the relevant
+  migration functions were also added to facilitate this (but the old ones were kept too so this should _not_ break
+  existing code).
+
 ## Changes between 2.0.1 and 2.0.2
 
 * Updated dependencies, which shouldn't affect users much since you should be
