@@ -19,16 +19,16 @@ guide (UPGRADING.md) in this repo.
 ## Migrations
 
 Datomic Toolbox has support for migrations. The database needs to be initialized by datomic-toolbox to get this support
-(older databases will need to be migrated). Running `(initialize config-map)` installs the partition and a transaction 
+(older databases will need to be migrated). Running `(initialize config-map)` installs the partition and a transaction
 attribute called :datomic-toolbox/migration, which is used to keep track of which migration files have been run.
 
-Files in resources/schema that end in .edn are considered migration files. datomic-toolbox orders schema files 
-lexicographically, so the convention is to name them with a date and time followed by some text describing what they do, 
+Files in resources/schema that end in .edn are considered migration files. datomic-toolbox orders schema files
+lexicographically, so the convention is to name them with a date and time followed by some text describing what they do,
 e.g. "20140616105400-initial-schema.edn".
 
-When `(run-migrations)` is called, it compares the schema files and the :datomic-toolbox/migration transaction attribute 
-to figure out which schema files have not been run, and then runs them in ascending lexicographical order. When a 
-migration file is run, the transaction is tagged with the migration attribute that contains the name of that schema 
+When `(run-migrations)` is called, it compares the schema files and the :datomic-toolbox/migration transaction attribute
+to figure out which schema files have not been run, and then runs them in ascending lexicographical order. When a
+migration file is run, the transaction is tagged with the migration attribute that contains the name of that schema
 file. You can use `(applied-migrations)` to get the migration filenames that have been run, and `(unapplied-migrations)`
 to get the migration files that have not been run.
 
@@ -42,6 +42,12 @@ When you are importing old data (or simulating data over time in tests, for exam
 to start at a point sufficiently in the past to give you room to set txInstants in your own transactions. To support
 this Datomic Toolbox allows you to set a `:migration-tx-instant` key to a java.util.Date of your choosing and it will
 then use that as the `:db/txInstant` value on all schema migration transactions it performs.
+
+**NOTE:** This is intended only for use in ephemeral configurations (import scripts, memory-transactor-based
+tests, etc.) and it will fall down pretty quickly if used outside these narrow use cases. That is because as soon
+as you transact any data without an explicit `:db/txInstant` in the transaction, the datetime you run that
+transaction becomes the new database basis. That means any future transactions that datomic-toolbox
+tries to run with your configured `:migration-tx-instant` will fail.
 
 ## Database functions
 
