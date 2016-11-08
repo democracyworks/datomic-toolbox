@@ -37,7 +37,7 @@
      (doseq [file (unapplied db dir)]
        (run connection file tx-instant)))))
 
-(defn set-tx-instant [tx-data tx-instant]
+(defn set-tx-instant [tx-instant tx-data]
   (if tx-instant
     (conj tx-data
           {:db/id #db/id [:db.part/tx]
@@ -48,15 +48,15 @@
   ([connection partition]
    (install-schema connection partition nil))
   ([connection partition tx-instant]
-   (-> [{:db/id #db/id[:db.part/db]
-         :db/ident partition
-         :db.install/_partition :db.part/db}
-        {:db/id #db/id[:db.part/db]
-         :db/ident :datomic-toolbox/migration
-         :db/valueType :db.type/string
-         :db/cardinality :db.cardinality/one
-         :db/doc "Migration File Name"
-         :db.install/_attribute :db.part/db}]
-       (set-tx-instant tx-instant)
-       (->> (d/transact connection))
-       deref)))
+   (->> [{:db/id #db/id[:db.part/db]
+          :db/ident partition
+          :db.install/_partition :db.part/db}
+         {:db/id #db/id[:db.part/db]
+          :db/ident :datomic-toolbox/migration
+          :db/valueType :db.type/string
+          :db/cardinality :db.cardinality/one
+          :db/doc "Migration File Name"
+          :db.install/_attribute :db.part/db}]
+        (set-tx-instant tx-instant)
+        (d/transact connection)
+        deref)))
