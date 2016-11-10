@@ -50,8 +50,8 @@
        ~docstring
        ([data-map#] (~name (core/tempid) data-map#))
        ([~id-sym data-map#]
-          (let [{:keys ~params} data-map#]
-            ~@body-with-id)))))
+        (let [{:keys ~params} data-map#]
+          ~@body-with-id)))))
 
 (defn- swap-tx*
   "Helper for swap-tx!"
