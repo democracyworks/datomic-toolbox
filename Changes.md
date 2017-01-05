@@ -1,5 +1,16 @@
 # Changelog
 
+## Changes between 2.0.3 and 2.0.4
+
+* Added a new `core/create-database-with-retries` fn that is used by
+  `core/initialize` to more reliably create databases. Often this is the first
+  thing you attempt to do on application startup and if you just started your
+  Datomic transactor as well (e.g. in a scripted dev environment), there can be
+  a race condition where this code attempts to create the database too early
+  and `datomic.api/create-database` throws an exception. This catches those
+  exceptions a few times, tries again with increasingly long delays, and
+  eventually gives up and re-throws the final exception if it doesn't succeed.
+
 ## Changes between 2.0.2 and 2.0.3
 
 * Added support for a `:migration-tx-instant` optional config param that can be set to a java.util.Date value.
