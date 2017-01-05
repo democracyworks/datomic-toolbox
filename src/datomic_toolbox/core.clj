@@ -1,5 +1,5 @@
 (ns datomic-toolbox.core
-  (:require [clojure.java.io :as io]
+  (:require [clojure.tools.logging :as log]
             [datomic.api :as d]
             [datomic-toolbox.migration :as migration])
   (:refer-clojure :exclude [partition]))
@@ -13,12 +13,16 @@
   - WSM 2016-2-13"
   (atom nil))
 (def default-migration-tx-instant (atom nil))
+(def default-create-database-attempts (atom 5))
 
-(defn configure! [{:keys [uri partition migration-tx-instant]}]
+(defn configure! [{:keys [uri partition migration-tx-instant
+                          create-database-attempts]}]
   (reset! default-uri uri)
   (reset! default-partition partition)
   (reset! default-connection nil)
-  (reset! default-migration-tx-instant migration-tx-instant))
+  (reset! default-migration-tx-instant migration-tx-instant)
+  (reset! default-create-database-attempts
+          (or create-database-attempts 5)))
 
 (defn uri [] @default-uri)
 
@@ -36,6 +40,8 @@
   ([n] (d/tempid (partition) n)))
 
 (defn migration-tx-instant [] @default-migration-tx-instant)
+
+(defn create-database-attempts [] @default-create-database-attempts)
 
 (defn transact [tx-data]
   (d/transact (connection) tx-data))
@@ -56,9 +62,32 @@
   ([] (migration/run-all (connection) (db) nil (migration-tx-instant)))
   ([directory] (migration/run-all (connection) (db) directory (migration-tx-instant))))
 
+(defn create-database-with-retries
+  "Runs datomic.api/create-database on the `uri` arg but catches any exceptions
+  it throws and tries again up to `tries` (or the configured
+  default-database-attempts) with increasingly long sleeps in between. Returns
+  the datomic.api/create-database return value if that ever succeeds, or
+  re-throws the final exception if it does not."
+  ([uri] (create-database-with-retries uri (create-database-attempts)))
+  ([uri tries]
+   (loop [attempt 1]
+     (let [create-result (try
+                           (d/create-database uri)
+                           (catch Exception e
+                             (log/warn "Unable to create database:" uri
+                                       "-" (.getMessage e)
+                                       "attempt:" attempt)
+                             (when (>= attempt tries)
+                               (throw e))))]
+       (if (nil? create-result)
+         (do (Thread/sleep (* attempt 1000))
+             (recur (inc attempt)))
+         (do (log/info "Created database:" uri)
+             create-result))))))
+
 (defn initialize [& [config]]
   (when config (configure! config))
-  (d/create-database (uri))
+  (create-database-with-retries (uri))
   (install-migration-schema)
   (run-migrations "datomic-toolbox-schemas")
   (run-migrations))
