@@ -58,9 +58,9 @@
   [connection n f]
   (let [tx-data (f (d/db connection))]
     (if-not (pos? n)
-      @(d/transact connection tx-data)
+      @(d/transact-async connection tx-data)
       (try
-        @(d/transact connection tx-data)
+        @(d/transact-async connection tx-data)
         (catch java.util.concurrent.ExecutionException e
           (let [cause (.getCause e)]
             (if (instance? java.util.ConcurrentModificationException cause)
