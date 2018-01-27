@@ -1,5 +1,10 @@
 # Changelog
 
+## Changes between 2.0.4 and 2.0.5
+
+* `swap-tx!` now uses `transact-async` instead of `transact` so that it is not
+subject to transaction timeouts.
+
 ## Changes between 2.0.3 and 2.0.4
 
 * Added a new `core/create-database-with-retries` fn that is used by

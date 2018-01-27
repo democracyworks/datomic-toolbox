@@ -170,7 +170,7 @@ database. It also uses `:transact` to assure an atomic transaction.
 
 ## License
 
-Copyright © 2014-2016 Democracy Works, Inc.
+Copyright © 2014-2018 Democracy Works, Inc.
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
