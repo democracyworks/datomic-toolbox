@@ -12,11 +12,11 @@
 (defn unmigrated-test-db [test]
   (let [new-uri (new-test-db-uri)]
     (d/create-database new-uri)
-    (core/configure! {:uri new-uri :partition "datomic-toolbox-test-partition"}))
+    (core/configure! {:uri new-uri :partition :datomic-toolbox-test-partition}))
   (core/install-migration-schema)
   (test))
 
 (defn migrated-test-db [test]
   (let [new-uri (new-test-db-uri)]
-    (core/initialize {:uri new-uri :partition "datomic-toolbox-test-partition"}))
+    (core/initialize {:uri new-uri :partition :datomic-toolbox-test-partition}))
   (test))
